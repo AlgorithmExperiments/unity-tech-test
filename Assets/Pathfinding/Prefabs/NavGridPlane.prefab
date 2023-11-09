@@ -152,13 +152,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _showDebuggingGizmos: 1
+  _previousShowDebuggingGizmos: 1
+  _algorithm: {fileID: 0}
+  _previousAlgorithm: {fileID: 0}
   _gridTileSize: 1
   _previousGridTileSize: 1
   _gridTileCountXY: {x: 48, y: 48}
   _previousGridTileCountXY: {x: 48, y: 48}
   _gridTilesPerPlane: 48
-  _collisionCheckerHeight: 8
-  _previousCollisionCheckerHeight: 8
+  _collisionCheckerHeight: 2
+  _previousCollisionCheckerHeight: 2
   _obstacleLayer:
     serializedVersion: 2
     m_Bits: 16
