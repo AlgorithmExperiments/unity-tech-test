@@ -1,13 +1,23 @@
-# Unity Pathfinding Take-Home Project
+# Unity C# Pathfinding
 
-Welcome to the Pocket Worlds Unity Pathfinding Take-Home Project! In this repository, we'd like you to demonstrate your engineering skills by creating a small Unity project that implements pathfinding. While Unity provides a built-in NavMesh system for pathfinding, this test will challenge you to create your own custom pathfinding solution for a 2D grid.
 
-This project will serve as the primary jumping off point for our technical interviews.
+Unity C# Pathfinding Implementation incorporating:
+- Complete pathfinding solution utilizing an implementation of the A* algorithm
+- Fully realtime dynamic obstacle detection with configurable layer filtering
+- Resizeable grid dimensions with sliders for adjusting tile size
+- Collision box height slider for adjustable obstacle overhang detection.
+- In-editor debugging visualizations (toggleable Gizmos) to help illustrate and provide educational insights on the pathfinding algorithm
 
-## Project Description
-We've already put together a project that has the foundations of what you need to get started. Please use it as a starting point and build your solution on top of it.
+## Instructions for Running
+1. Clone repo to local desktop
+2. Launch Unity Hub and choose Add -> Project from Disk
+4. navigate to cloned project containing Assets folder and select Add Project
+5. Launch project using 2022.3.9f1 (for best results)
+6. Open scene under Pathfinding/Scenes and ensure that Gizmos are toggled to ON in the upper righ corner of the game playback viewport
+7. Select the 'NavGrid' gameobject and see the inspector panel to adjust the various settings during in-editor playback. Adjust the 'show debugging gizmos' toggle to control visibility of in-editor debugging visualizations that better portray the A* pathfinding algorithm.
 
-Your task is to build a Unity project that meets the following requirements:
+
+### Features
 
 1. **Pathfinding Implementation**: Develop a custom pathfinding system without using Unity's NavMesh system. You are free to choose any pathfinding algorithm you prefer, such as A* or Dijkstra's algorithm.
 
@@ -18,10 +28,7 @@ Your task is to build a Unity project that meets the following requirements:
 ## Getting Started
 To begin the project, follow these steps:
 
-1. Clone this repository to your local machine:
-
-   ```shell
-   git clone https://github.com/pocketzworld/unity-tech-test.git
+1. Clone this repository to your local machine.
 
 2. Create a Unity project or use an existing one.
 
@@ -46,7 +53,7 @@ When you have completed the project, please follow these guidelines for submissi
 
 3. Provide clear instructions on how to run and test your project.
 
-4. Share the repository URL with the hiring team or interviewer.
+4. Share the repository URL with us!
 
 ## Additional Information
 
