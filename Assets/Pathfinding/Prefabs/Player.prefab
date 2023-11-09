@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 4589863134528531164}
   - component: {fileID: 805698064884144171}
   - component: {fileID: 2737074545355352485}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Nose (forward)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -116,11 +116,12 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7356370264346117301}
-  - component: {fileID: 1495133619455150144}
+  - component: {fileID: 878188497026042468}
   - component: {fileID: 8618333106129401312}
   - component: {fileID: 865638178690862351}
   - component: {fileID: 8367344265483802577}
-  m_Layer: 0
+  - component: {fileID: 1539641211147733709}
+  m_Layer: 2
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -143,7 +144,7 @@ Transform:
   - {fileID: 5874945180559869117}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1495133619455150144
+--- !u!114 &878188497026042468
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -152,12 +153,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3271883727968293047}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7c9b68fef76704868bbca95f7bd4dd73, type: 3}
+  m_Script: {fileID: 11500000, guid: cf10e5a8cdc80644aaa71d22132a64a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Grid: {fileID: 0}
-  Destination: {x: 0, y: 0, z: 0}
-  Speed: 10
+  _navGrid: {fileID: 0}
+  _speed: 10
 --- !u!33 &8618333106129401312
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -231,3 +231,30 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &1539641211147733709
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3271883727968293047}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 2
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 2
+  m_Constraints: 80
+  m_CollisionDetection: 2
