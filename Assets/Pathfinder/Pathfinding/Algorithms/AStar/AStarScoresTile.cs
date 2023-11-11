@@ -2,6 +2,7 @@
 
 using UnityEngine;
 
+
 public struct AStarScoresTile
 {
 

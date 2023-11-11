@@ -19,10 +19,10 @@ public class NavGrid : MonoBehaviour
     AStarAlgorithm _previousAlgorithm;
 
     [SerializeField] [Range(0.1f, 3f)]
-    float _gridTileSize = 1.0f;
+    float _tileSize = 1.0f;
 
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
-    float _previousGridTileSize = 1.0f;
+    float _previousTileSize = 1.0f;
     
     [SerializeField]
     Vector2Int _gridTileCountXY = new(48,48);
@@ -43,7 +43,7 @@ public class NavGrid : MonoBehaviour
     LayerMask _obstacleLayer = 1 << 4;
 
     [SerializeField]
-    NavGridTile[,] _navigationGrid;
+    NavGridTile[,] _navGridTiles;
 
     ///----------------------------------------------------------------------------<summary>
     /// Previous total world size of the navigation grid (after latest trimming)  </summary>
@@ -108,21 +108,20 @@ public class NavGrid : MonoBehaviour
 
 
 
-        if (!Mathf.Approximately(_gridTileSize, _previousGridTileSize))
+        if (!Mathf.Approximately(_tileSize, _previousTileSize))
         {
             if (!Application.isPlaying)
             {
-                _gridTileSize = _previousGridTileSize; //💬 Lock sliderbar if game is not playing
+                _tileSize = _previousTileSize; //💬 Lock sliderbar if game is not playing
                 return;
             }
 
             float collisionPlaneWorldSizeMeters = transform.localScale.x; //We'll assume world map is symmetric in x and y dimensions
             
-            _previousGridTileSize = _gridTileSize;
-            _gridTilesPerPlane = Mathf.RoundToInt(collisionPlaneWorldSizeMeters/_gridTileSize); //ToDo: Update this to Vector2Int
+            _gridTilesPerPlane = Mathf.RoundToInt(collisionPlaneWorldSizeMeters/_tileSize); //ToDo: Update this to Vector2Int
             
-            _gridTileSize = collisionPlaneWorldSizeMeters/_gridTilesPerPlane; 
-            _previousGridTileSize = _gridTileSize;
+            _tileSize = collisionPlaneWorldSizeMeters/_gridTilesPerPlane; 
+            _previousTileSize = _tileSize;
             
             RepopulateTilesAndResizeMapToPerfectFit();
         }
@@ -185,14 +184,14 @@ public class NavGrid : MonoBehaviour
 
     public bool IsTileTraversable(Vector2Int tile)
     {
-        return _navigationGrid[tile.x, tile.y].IsTraversable;
+        return _navGridTiles[tile.x, tile.y].IsTraversable;
     }
 
 
 
     public Vector3 GetWorldPositionOfTile(Vector2Int index)
     {
-        return _navigationGrid[index.x, index.y].CenterPointWorldPosition;
+        return _navGridTiles[index.x, index.y].CenterPointWorldPosition;
     }
 
 
@@ -211,7 +210,7 @@ public class NavGrid : MonoBehaviour
         }
 
         Vector2 gridSpacePositionXY = new Vector2(worldPosition.x + (_worldSizeOfFittedGrid.x/2), worldPosition.z + (_worldSizeOfFittedGrid.z/2));
-        Vector2Int gridTileIndex = new Vector2Int((int)(gridSpacePositionXY.x / _gridTileSize), (int)(gridSpacePositionXY.y / _gridTileSize));
+        Vector2Int gridTileIndex = new Vector2Int((int)(gridSpacePositionXY.x / _tileSize), (int)(gridSpacePositionXY.y / _tileSize));
 
         //💬
         //Debug.Log("NAV GRID: GetGridTileAtWorldPosition() target point correlates to grid Tile index (" + gridTileIndex.ToString() + ")");
@@ -226,12 +225,12 @@ public class NavGrid : MonoBehaviour
         //Debug.Log("NAV GRID: PopulateTilesAndTrimPlaneToPerfectFit() was called");
 
         if (hasMapSizeChanged)
-            transform.localScale = new (_gridTileCountXY.x*_gridTileSize, 48, _gridTileCountXY.y*_gridTileSize);
+            transform.localScale = new (_gridTileCountXY.x*_tileSize, 48, _gridTileCountXY.y*_tileSize);
 
         // Calculates tile count:
         _gridTileCountXY = new Vector2Int(
-            Mathf.RoundToInt(transform.localScale.x / _gridTileSize),
-            Mathf.RoundToInt(transform.localScale.z / _gridTileSize)
+            Mathf.RoundToInt(transform.localScale.x / _tileSize),
+            Mathf.RoundToInt(transform.localScale.z / _tileSize)
         );
 
         _worldSizeOfFittedGrid = new Vector3(  
@@ -239,7 +238,7 @@ public class NavGrid : MonoBehaviour
             transform.localScale.z   //💬 When the collision plane gameobject's localScale == 1, it's real-world diameter is 1 x 1 meters:
         );
 
-        _navigationGrid = new NavGridTile[_gridTileCountXY.x, _gridTileCountXY.y];
+        _navGridTiles = new NavGridTile[_gridTileCountXY.x, _gridTileCountXY.y];
         
         RecalculateTraversabilityOfEntireGrid();
     }
@@ -257,18 +256,18 @@ public class NavGrid : MonoBehaviour
         //💬
         //Debug.Log("NAV GRID: RegenerateTileTraversability() was called. _navigationGrid size = (" + _navigationGrid.GetLength(0) + ", " + _navigationGrid.GetLength(1) + ")");
 
-        float halfTileSize = _gridTileSize * 0.5f;
+        float halfTileSize = _tileSize * 0.5f;
         Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize, _collisionCheckerHeight / 2, halfTileSize); // tall box
         Vector3 gridCornerPointOffset = -_worldSizeOfFittedGrid/2;
 
-        for (int x = 0; x < _navigationGrid.GetLength(0); x++)
+        for (int x = 0; x < _navGridTiles.GetLength(0); x++)
         {
-            for (int y = 0; y < _navigationGrid.GetLength(1); y++)
+            for (int y = 0; y < _navGridTiles.GetLength(1); y++)
             {
-                Vector3 tileCenter = new Vector3((x + 0.5f) * _gridTileSize, _collisionCheckerHeight / 2, (y + 0.5f) * _gridTileSize);
+                Vector3 tileCenter = new Vector3((x + 0.5f) * _tileSize, _collisionCheckerHeight / 2, (y + 0.5f) * _tileSize);
                 tileCenter += gridCornerPointOffset;
-                _navigationGrid[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
-                _navigationGrid[x, y].CenterPointWorldPosition = new Vector3( tileCenter.x, _yPlaneHeightOfDebuggingGizmos, tileCenter.z);
+                _navGridTiles[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
+                _navGridTiles[x, y].CenterPointWorldPosition = new Vector3( tileCenter.x, _yPlaneHeightOfDebuggingGizmos, tileCenter.z);
             }
         }
     }
@@ -286,7 +285,7 @@ public class NavGrid : MonoBehaviour
         //💬
         //Debug.Log("NAV GRID: RecalculateTraversabilityOfTilesNearObstacle() was called.");
 
-        float halfTileSize = _gridTileSize * 0.5f;
+        float halfTileSize = _tileSize * 0.5f;
         Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize, _collisionCheckerHeight / 2, halfTileSize); // tall box
         Vector3 gridCornerPointOffset = -_worldSizeOfFittedGrid/2;
         
@@ -295,16 +294,16 @@ public class NavGrid : MonoBehaviour
         Vector2Int tileMaxXY = GetIndexOfGridTileAtWorldPosition(targetObstacleWorldBounds.max);
         int xMin = Mathf.RoundToInt(Mathf.Max(0, tileMinXY.x - outerPadding));
         int yMin = Mathf.RoundToInt(Mathf.Max(0, tileMinXY.y - outerPadding));
-        int xMax = Mathf.RoundToInt(Mathf.Min(tileMaxXY.x + outerPadding, _navigationGrid.GetLength(0)));
-        int yMax = Mathf.RoundToInt(Mathf.Min(tileMaxXY.y + outerPadding, _navigationGrid.GetLength(1)));
+        int xMax = Mathf.RoundToInt(Mathf.Min(tileMaxXY.x + outerPadding, _navGridTiles.GetLength(0)));
+        int yMax = Mathf.RoundToInt(Mathf.Min(tileMaxXY.y + outerPadding, _navGridTiles.GetLength(1)));
         for (int x = xMin; x < xMax; x++)
         {
             for (int y = yMin; y < yMax; y++)
             {
-                Vector3 tileCenter = new Vector3((x + 0.5f) * _gridTileSize, _collisionCheckerHeight / 2, (y + 0.5f) * _gridTileSize);
+                Vector3 tileCenter = new Vector3((x + 0.5f) * _tileSize, _collisionCheckerHeight / 2, (y + 0.5f) * _tileSize);
                 tileCenter += gridCornerPointOffset;
-                _navigationGrid[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
-                _navigationGrid[x, y].CenterPointWorldPosition = new Vector3( tileCenter.x, _yPlaneHeightOfDebuggingGizmos, tileCenter.z);
+                _navGridTiles[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
+                _navGridTiles[x, y].CenterPointWorldPosition = new Vector3( tileCenter.x, _yPlaneHeightOfDebuggingGizmos, tileCenter.z);
             }
         }
     }
@@ -318,9 +317,6 @@ public class NavGrid : MonoBehaviour
     /// Given the current and desired location, return a path to the destination.  </summary>
     public PathNode[] GetPath(Vector3 origin, Vector3 destination) //---------------------------
     {
-        //💬
-        Debug.Log("NAV GRID: GetPath(): _gridTileCountXY = (" + _gridTileCountXY.ToString() + ")");
-
         _finalTilePath = _algorithm.GetPath(GetIndexOfGridTileAtWorldPosition(origin), GetIndexOfGridTileAtWorldPosition(destination), _gridTileCountXY, IsTileTraversable, GetWorldPositionOfTile);
         return _finalTilePath;
     }
@@ -343,22 +339,22 @@ public class NavGrid : MonoBehaviour
         Vector3 gridCornerPointOffset = -_worldSizeOfFittedGrid/2;
 
         for (int row = 0; row < rowCount; row++) {
-            Vector3 startPosition = new (row * _gridTileSize, _yPlaneHeightOfDebuggingGizmos, 0);
-            Vector3 endPosition = new (row * _gridTileSize, _yPlaneHeightOfDebuggingGizmos, columnCount * _gridTileSize);
+            Vector3 startPosition = new (row * _tileSize, _yPlaneHeightOfDebuggingGizmos, 0);
+            Vector3 endPosition = new (row * _tileSize, _yPlaneHeightOfDebuggingGizmos, columnCount * _tileSize);
             Gizmos.DrawLine((startPosition + gridCornerPointOffset), (endPosition + gridCornerPointOffset));
         }
 
         for (int column = 0; column < columnCount; column++) {
-            Vector3 startPos = new (0, _yPlaneHeightOfDebuggingGizmos, column * _gridTileSize);
-            Vector3 endPos = new (rowCount * _gridTileSize, _yPlaneHeightOfDebuggingGizmos, column * _gridTileSize);
+            Vector3 startPos = new (0, _yPlaneHeightOfDebuggingGizmos, column * _tileSize);
+            Vector3 endPos = new (rowCount * _tileSize, _yPlaneHeightOfDebuggingGizmos, column * _tileSize);
             Gizmos.DrawLine((startPos + gridCornerPointOffset), (endPos + gridCornerPointOffset));
         }
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Draws red rectangles around tiles containing obstacles:
         Gizmos.color = new Color(1,0,0,0.5f); //💬 Transparent red
-        Vector3 rectangleSize = new(1.0f * _gridTileSize, 0f, 1.0f * _gridTileSize);
-        foreach (NavGridTile tile in _navigationGrid)
+        Vector3 rectangleSize = new(1.0f * _tileSize, 0f, 1.0f * _tileSize);
+        foreach (NavGridTile tile in _navGridTiles)
         {
             if (!tile.IsTraversable)
             {

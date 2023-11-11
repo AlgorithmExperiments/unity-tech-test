@@ -9,10 +9,9 @@ public class AStarAlgorithm : MonoBehaviour
     [SerializeField] [HideInInspector]
     bool _showDebuggingGizmos = true;
 
-    AStarScoresTile[,] _aStarScoreTiles;
 
-    HashSet<Vector2Int> _openTiles = new();
-    HashSet<Vector2Int> _closedTiles = new();
+    AStarOpenTilesPriorityDictionary _openTiles = new AStarOpenTilesPriorityDictionary();
+    Dictionary<Vector2Int, AStarScoresTile> _closedTiles = new();
 
     bool _currentlyPathfinding = false;
     bool _abortRequested = false;
@@ -30,7 +29,7 @@ public class AStarAlgorithm : MonoBehaviour
 
     ///-------------------------------------------------------------------------------<summary>
     /// Description here... </summary>
-    public PathNode[] GetPath(Vector2Int startingTile, Vector2Int destinationTile, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile)
+    public PathNode[] GetPath(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile)
     {
         startTime = Time.realtimeSinceStartup;
         
@@ -38,69 +37,52 @@ public class AStarAlgorithm : MonoBehaviour
         this.getWorldPositionOfTile = getWorldPositionOfTile; 
         this.isTileTraversable = isTileTraversable;
 
-        if (!isTileTraversable(destinationTile))
+        if (!isTileTraversable(destinationTileIndex))
         {
-            destinationTile = GetTraversableTileNearestToUnreachableTarget(destinationTile, startingTile, tileCountXY);
-            
-            //💬
-            Debug.Log("A STAR ALGORITHM: GetPath(): destinationTile was previously unreachable. NEW destinationTile is " 
-                + (isTileTraversable(destinationTile) ? "TRAVERSABLE" : "STILL UNREACHABLE"));
+            destinationTileIndex = GetTraversableTileNearestToUnreachableTarget(destinationTileIndex, startingTileIndex, tileCountXY);
         }
 
         //💬 Preparation & Cleanup---------------------------------------------------------------------------------
         _openTiles.Clear();
         _closedTiles.Clear();
-        _aStarScoreTiles = new AStarScoresTile[tileCountXY.x, tileCountXY.y];
-        for (int x = 0; x < tileCountXY.x; x++)
-        {
-            for (int y = 0; y < tileCountXY.y; y++)
-            {
-                _aStarScoreTiles[x, y] = new AStarScoresTile(decimal.MaxValue, decimal.MaxValue, decimal.MaxValue, new Vector2Int(-1, -1), new Vector2Int(x, y));
-            }
-        }
 
         //💬 Preparing startingTile and currentTile----------------------------------------------------------------------
-        _openTiles.Add(startingTile); 
-        _aStarScoreTiles[startingTile.x, startingTile.y].GScore = 0;
-        _aStarScoreTiles[startingTile.x, startingTile.y].HScore = GetDistanceScore(startingTile, destinationTile);
-        _aStarScoreTiles[startingTile.x, startingTile.y].FScore = _aStarScoreTiles[startingTile.x, startingTile.y].HScore;
-        Vector2Int currentTile = startingTile;
+        AStarScoresTile startingTile = new(0m, decimal.MaxValue, decimal.MaxValue, new(-1,-1), startingTileIndex);
+        _openTiles.Enqueue(startingTile);
+        Vector2Int currentTileIndex = startingTileIndex;
 
 
         //💬  A* PATHFINDING ALGORITHM--------------------------------------------------------------------------------
-        while (currentTile != destinationTile)
+        while (currentTileIndex != destinationTileIndex)
         {
-            if (_openTiles.Count == 0  ||  _abortRequested)
+            if (_openTiles.Count == 0 || _abortRequested)
             {
+                float realtimeSinceStartup = Time.realtimeSinceStartup;
                 //💬---------------------------------------------------------------------------------------
-                Debug.Log("A STAR ALGORITHM: GetPath(): BREAK from while() loop: " 
+                Debug.Log("A STAR ALGORITHM: GetPath(): BREAK from while() loop: "
                     + (_abortRequested ? "ABORT REQUESTED" : "openTiles.Count == 0")
-                    + "Searched " + (_openTiles.Count + _closedTiles.Count) 
-                    + " tiles in " + (Time.realtimeSinceStartup - startTime)*1000f + " milliseconds " 
+                    + "Searched " + (_openTiles.Count + _closedTiles.Count)
+                    + " tiles in " + (realtimeSinceStartup - startTime) * 1000f + " milliseconds "
                     + "(" + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
                 //-----------------------------------------------------------------------------------------
-                
+
                 _abortRequested = false;
                 break;
             }
 
-            //💬 Find LOWEST FScore------------------------------------------------------------------------
-            currentTile = FindLowestFScoreInOpenTiles();
-            _closedTiles.Add(currentTile);
-            _openTiles.Remove(currentTile);
-
-            if (currentTile != destinationTile)
+            //💬 Retrieve tile from open tiles with the LOWEST FScore--------------------------------------
+            AStarScoresTile currentTile = _openTiles.Dequeue();
+            currentTileIndex = currentTile.Index;
+            _closedTiles.Add(currentTileIndex, currentTile);
+            
+            if (currentTileIndex != destinationTileIndex)
             {
-                List<AStarScoresTile> newNeighborScores = GetNewNeighborScores(currentTile, startingTile, destinationTile, tileCountXY, isTileTraversable);
-                foreach (AStarScoresTile scoresTile in newNeighborScores)
+                List<AStarScoresTile> newNeighborScores = GetNewNeighborScores(currentTileIndex, startingTileIndex, destinationTileIndex, tileCountXY, isTileTraversable);
+                foreach (AStarScoresTile neighborScoresTile in newNeighborScores)
                 {
-                    Vector2Int index = scoresTile.Index;
-                    if (scoresTile.GScore < _aStarScoreTiles[index.x, index.y].GScore || !_openTiles.Contains(index))
-                    {
-                        _aStarScoreTiles[index.x, index.y] = scoresTile;
-                        if (!_openTiles.Contains(scoresTile.Index))
-                            _openTiles.Add(scoresTile.Index);
-                    }
+                    bool neighborAlreadyInOpenTiles =_openTiles.SetGScoreToNewLowerValue(neighborScoresTile.Index, neighborScoresTile.GScore);
+                    if (!neighborAlreadyInOpenTiles)
+                        _openTiles.Enqueue(neighborScoresTile);
                 }
             }
             else
@@ -109,7 +91,7 @@ public class AStarAlgorithm : MonoBehaviour
             } 
         }
         //💬 COMPILE RESULT-------------------------------------------------------------------------------
-        List<Vector2Int> shortestPath = MarchBackwardToCompileFinalResult(destinationTile, startingTile);
+        List<Vector2Int> shortestPath = MarchBackwardToCompileFinalResult(destinationTileIndex, startingTileIndex);
         PathNode[] shortestPath3D = new PathNode[shortestPath.Count];
         for (int i = 0; i < shortestPath.Count; i++)
         {
@@ -165,7 +147,7 @@ public class AStarAlgorithm : MonoBehaviour
             for (int y = minCornerTile.y; y <= maxCornerTile.y; y++)
             {
                 Vector2Int neighbor = new(x,y);
-                if (isTileTraversable(neighbor) && !_closedTiles.Contains(neighbor))
+                if (isTileTraversable(neighbor) && !_closedTiles.ContainsKey(neighbor))
                     neighbors.Add(neighbor);
             }
         }
@@ -175,10 +157,9 @@ public class AStarAlgorithm : MonoBehaviour
         List<AStarScoresTile> newNeighborScores = new();
         foreach (Vector2Int neighbor in neighbors)
         {
-            decimal gScore = _aStarScoreTiles[currentTile.x, currentTile.y].GScore + GetDistanceScore(currentTile, neighbor);
+            decimal gScore = _closedTiles[currentTile].GScore + GetDistanceScore(currentTile, neighbor); // += 1.0 or 1.4
             decimal hScore = GetDistanceScore(neighbor, destinationTile);
-            Vector2Int index = new(neighbor.x, neighbor.y);
-            newNeighborScores.Add(new(gScore, hScore, gScore+hScore, currentTile, index));
+            newNeighborScores.Add(new(gScore, hScore, gScore+hScore, currentTile, new(neighbor.x, neighbor.y)));
         }
         return newNeighborScores;
     }
@@ -197,38 +178,6 @@ public class AStarAlgorithm : MonoBehaviour
         return (1.4m * numberOfDiagonalSteps) + (1.0m * numberOfRemainingNonDiagonalSteps);
     }
 
-
-
-
-
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
-    Vector2Int FindLowestFScoreInOpenTiles()
-    {
-        if (_openTiles.Count == 0)
-        {
-            //💬
-            Debug.LogError("A STAR ALGORITHM: FindLowestFScoreInOpenTiles(): ERROR: _openTiles is empty; returning dummy value (-1,-1)");
-            RequestAbort();
-            return new(-1, -1);
-        }
-        decimal lowestFScore = decimal.MaxValue;
-        decimal lowestHScoreTieBreaker = decimal.MaxValue; //💬 Tie-breaker when deciding between identical lowestFScores
-        Vector2Int tileWithLowestFScore = new(-1, -1);
-        foreach (Vector2Int tile in _openTiles)
-        {
-            decimal fScore = _aStarScoreTiles[tile.x, tile.y].FScore;
-            decimal hScore = _aStarScoreTiles[tile.x, tile.y].HScore;
-            if (fScore < lowestFScore || (fScore == lowestFScore && hScore < lowestHScoreTieBreaker))
-            {
-                //💬 New tile wins out!
-                    tileWithLowestFScore = tile;
-                    lowestFScore = fScore;
-                    lowestHScoreTieBreaker = hScore;
-            }
-        }
-        return tileWithLowestFScore;
-    }
 
 
 
@@ -295,14 +244,11 @@ public class AStarAlgorithm : MonoBehaviour
     /// Description here... </summary>
     List<Vector2Int> MarchBackwardToCompileFinalResult(Vector2Int destinationTile, Vector2Int startingTile)
     {
-        //💬
-        Debug.Log("A STAR ALGORITHM: MarchBackwardToCollateFinalResult(): destinationTile = " + destinationTile.ToString() + ", startingTile = " + startingTile.ToString());
-
         List<Vector2Int> finalPath = new() { destinationTile };
         Vector2Int currentTile = destinationTile;
         while (currentTile != startingTile)
         {
-            currentTile = _aStarScoreTiles[currentTile.x, currentTile.y].ParentTile;
+            currentTile = _closedTiles[currentTile].ParentTile;
             finalPath.Add(currentTile);
         }
         finalPath.Reverse();
@@ -329,14 +275,14 @@ public class AStarAlgorithm : MonoBehaviour
 
         //💬 Low opacity for OPEN tiles
         Gizmos.color = new Color(0, 1f, 0.4f, 0.07f); 
-        foreach (Vector2Int tile in _openTiles)
+        foreach (Vector2Int tile in _openTiles.Keys)
         {
             Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
         }
 
         //💬 Greater opacity for CLOSED tiles
         Gizmos.color = new Color(0, 1f, 0.5f, 0.15f); 
-        foreach (Vector2Int tile in _closedTiles)
+        foreach (Vector2Int tile in _closedTiles.Keys)
         {
             Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
         }
