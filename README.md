@@ -4,9 +4,13 @@
 Unity C# Pathfinding Implementation incorporating:
 - Complete pathfinding solution utilizing an implementation of the A* algorithm
 - Fully realtime dynamic obstacle detection with configurable layer filtering
+- If destination is unreachable (inside an obstacle), reroutes to the nearest best tile
 - Resizeable grid dimensions with sliders for adjusting tile size
 - Collision box height slider for adjustable obstacle overhang detection.
 - In-editor debugging visualizations (toggleable Gizmos) to help illustrate and provide educational insights on the pathfinding algorithm
+- Leverages optimizations using a custom PriorityDictionary which combinesconstant time O(1) dictionary lookups with O(1) fetching of the lowest F-Score tile
+- Currently performs pathfinding in ~0.3 ms
+
 
 ## Instructions for Running
 1. Clone repo to local desktop
