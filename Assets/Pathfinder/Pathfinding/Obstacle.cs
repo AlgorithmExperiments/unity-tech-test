@@ -16,7 +16,9 @@ public class Obstacle : MonoBehaviour
 
     int _sleepThreshold = 5;
 
-    
+    public static LayerMask UniversalObstacleLayer => 1 << 4; //💬 "Water" Layer (Layer 4)
+
+
     void Awake()
     {
         gameObject.layer = LayerMask.NameToLayer("Water");

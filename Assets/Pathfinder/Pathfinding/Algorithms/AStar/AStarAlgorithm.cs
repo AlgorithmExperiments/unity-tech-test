@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using Utils;
 
+
 public class AStarAlgorithm : MonoBehaviour
 {
     [SerializeField] [HideInInspector]
     bool _showDebuggingGizmos = true;
 
+    [SerializeField] PathSimplifier _pathSimplifier;
 
     AStarOpenTilesPriorityDictionary _openTiles = new AStarOpenTilesPriorityDictionary();
     Dictionary<Vector2Int, AStarScoresTile> _closedTiles = new();
@@ -22,7 +24,8 @@ public class AStarAlgorithm : MonoBehaviour
     public delegate Vector3 GetWorldPositionOfTile(Vector2Int tile);
     GetWorldPositionOfTile getWorldPositionOfTile;
 
-    PathNode[] _finalPath = Array.Empty<PathNode>();
+    PathNode[] _rawAStarPath = Array.Empty<PathNode>();
+    PathNode[] _reducedAStarPath = Array.Empty<PathNode>();
 
     float startTime;
 
@@ -31,7 +34,7 @@ public class AStarAlgorithm : MonoBehaviour
 
     ///-------------------------------------------------------------------------------<summary>
     /// Description here... </summary>
-    public PathNode[] GetPath(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile)
+    public PathNode[] GetPath(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile, Vector2 collisionPostProcessingTunnelBox)
     {
         startTime = Time.realtimeSinceStartup;
         
@@ -45,9 +48,7 @@ public class AStarAlgorithm : MonoBehaviour
         }
 
         //💬 Preparation & Cleanup---------------------------------------------------------------------------------
-        _openTiles.Clear();
-        _closedTiles.Clear();
-        _finalPath = Array.Empty<PathNode>();
+        Reset();
 
         //💬 Preparing startingTile and currentTile----------------------------------------------------------------------
         AStarScoresTile startingTile = new(0m, decimal.MaxValue, decimal.MaxValue, new(-1,-1), startingTileIndex);
@@ -95,10 +96,10 @@ public class AStarAlgorithm : MonoBehaviour
         }
         //💬 COMPILE RESULT-------------------------------------------------------------------------------
         List<Vector2Int> shortestPath = MarchBackwardToCompileFinalResult(destinationTileIndex, startingTileIndex);
-        _finalPath = new PathNode[shortestPath.Count];
+        _rawAStarPath = new PathNode[shortestPath.Count];
         for (int i = 0; i < shortestPath.Count; i++)
         {
-            _finalPath[i].Position = getWorldPositionOfTile(shortestPath[i]);
+            _rawAStarPath[i].Position = getWorldPositionOfTile(shortestPath[i]);
         }
 
         //💬-------------------------------------------------------------------------------------------
@@ -108,7 +109,8 @@ public class AStarAlgorithm : MonoBehaviour
             + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
         //----------------------------------------------------------------------------------------------
 
-        return _finalPath;
+        _reducedAStarPath = _pathSimplifier.SimplifyPath(_rawAStarPath, collisionPostProcessingTunnelBox).ToArray();
+        return _reducedAStarPath;
     }
 
 
@@ -119,6 +121,19 @@ public class AStarAlgorithm : MonoBehaviour
     /// Description here... </summary>
     public void AbortAndReset() //--------------------------------------------------------------
     {
+        if (_currentlyPathfinding)
+            _abortRequested = true;
+
+        Reset();
+    }
+
+
+
+
+    ///-------------------------------------------------------------------------------<summary>
+    /// Description here... </summary>
+    public void Reset() //--------------------------------------------------------------
+    {
 
         if (_currentlyPathfinding)
             _abortRequested = true;
@@ -126,7 +141,8 @@ public class AStarAlgorithm : MonoBehaviour
         //💬 Reset
         _closedTiles.Clear();
         _openTiles.Clear();
-        _finalPath = Array.Empty<PathNode>();
+        _rawAStarPath = Array.Empty<PathNode>();
+        _pathSimplifier.Reset();
     }
 
 
@@ -269,6 +285,14 @@ public class AStarAlgorithm : MonoBehaviour
 
 
 
+    private void OnValidate()
+    {
+        if (!_pathSimplifier)
+        {
+            Debug.LogError("AStarAlgorithm inspector requires a reference to a PathSimplifier");
+        }
+    }
+
 
 
     ///---------------------------------------------------------------------------------------<summary>
@@ -303,10 +327,10 @@ public class AStarAlgorithm : MonoBehaviour
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Draws green circles along highlighted tile path:
         Gizmos.color = new Color(0, 1, 0.3f, 0.25f); //💬 Transparent cyan
-        for (int i = 1; i < _finalPath.Length; i++)
+        for (int i = 1; i < _reducedAStarPath.Length; i++)
         {
-            Gizmos.DrawSphere(_finalPath[i].Position, 0.12f);
-            Gizmos.DrawLine (_finalPath[i - 1].Position, _finalPath[i].Position);
+            Gizmos.DrawSphere(_reducedAStarPath[i].Position, 0.12f);
+            Gizmos.DrawLine (_reducedAStarPath[i - 1].Position, _reducedAStarPath[i].Position);
         }
     }
 }

@@ -30,8 +30,17 @@ public class NavGrid : MonoBehaviour
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
     Vector2Int _previousGridTileCountXY = new(48,48);
 
+    [SerializeField] [Range(0f, 3f)]
+    float _obstacleCollisionPadding = 0f;
+
+    [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
+    float _previousObstacleCollisionPadding = 0f;
+
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
     float _gridTilesPerPlane = 48.0f; 
+
+    [SerializeField] [Range(0.5f, 3f)]
+    float _collisionPostProcessingTunnelWidth = 1f;
 
     [SerializeField] [Range(0.05f, 8f)]
     float _collisionCheckerHeight = 2f;
@@ -40,7 +49,7 @@ public class NavGrid : MonoBehaviour
     float _previousCollisionCheckerHeight = 2f;
 
     [SerializeField]
-    LayerMask _obstacleLayer = 1 << 4;
+    LayerMask _obstacleLayer;
 
     [SerializeField]
     NavGridTile[,] _navGridTiles;
@@ -68,6 +77,7 @@ public class NavGrid : MonoBehaviour
 
     void Start()
     {
+        _obstacleLayer = Obstacle.UniversalObstacleLayer;
         RepopulateTilesAndResizeMapToPerfectFit();
     }
 
@@ -81,7 +91,7 @@ public class NavGrid : MonoBehaviour
         {
             foreach (Collider collider in _dynamicObstacles)
             {
-                UpdateTilesAroundMovingObstacle(collider.bounds);
+                UpdateTilesAroundObstacleInMotion(collider.bounds);
             }
         }
     }
@@ -180,7 +190,8 @@ public class NavGrid : MonoBehaviour
         //Debug.Log("NAV GRID: RegenerateTileTraversability() was called. _navigationGrid size = (" + _navigationGrid.GetLength(0) + ", " + _navigationGrid.GetLength(1) + ")");
 
         float halfTileSize = _tileSize * 0.5f;
-        Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize, _collisionCheckerHeight / 2, halfTileSize); // tall box
+        float obstacleCollisionPaddingInMeters = _tileSize*_obstacleCollisionPadding;
+        Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize + obstacleCollisionPaddingInMeters, _collisionCheckerHeight / 2, halfTileSize + obstacleCollisionPaddingInMeters); // tall box
         Vector3 gridCornerPointOffset = -_worldSizeOfFittedGrid/2;
 
         for (int x = 0; x < _navGridTiles.GetLength(0); x++)
@@ -197,7 +208,7 @@ public class NavGrid : MonoBehaviour
 
 
 
-    void UpdateTilesAroundMovingObstacle(Bounds targetObstacleWorldBounds)
+    void UpdateTilesAroundObstacleInMotion(Bounds targetObstacleWorldBounds)
     {
         if (!Application.isPlaying)
         {   //💬
@@ -205,11 +216,9 @@ public class NavGrid : MonoBehaviour
             return;
         }
         
-        //💬
-        //Debug.Log("NAV GRID: RecalculateTraversabilityOfTilesNearObstacle() was called.");
-
         float halfTileSize = _tileSize * 0.5f;
-        Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize, _collisionCheckerHeight / 2, halfTileSize); // tall box
+        float obstacleCollisionPaddingInMeters = _tileSize*_obstacleCollisionPadding;
+        Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize + obstacleCollisionPaddingInMeters, _collisionCheckerHeight / 2, halfTileSize + obstacleCollisionPaddingInMeters); // tall box
         Vector3 gridCornerPointOffset = -_worldSizeOfFittedGrid/2;
         
         int outerPadding = 2;
@@ -240,7 +249,7 @@ public class NavGrid : MonoBehaviour
     /// Given the current and desired location, return a path to the destination.  </summary>
     public PathNode[] GetPath(Vector3 origin, Vector3 destination) //---------------------------
     {
-        _finalTilePath = _algorithm.GetPath(GetIndexOfGridTileAtWorldPosition(origin), GetIndexOfGridTileAtWorldPosition(destination), _gridTileCountXY, IsTileTraversable, GetWorldPositionOfTile);
+        _finalTilePath = _algorithm.GetPath(GetIndexOfGridTileAtWorldPosition(origin), GetIndexOfGridTileAtWorldPosition(destination), _gridTileCountXY, IsTileTraversable, GetWorldPositionOfTile, new(_collisionPostProcessingTunnelWidth, _collisionCheckerHeight));
         return _finalTilePath;
     }
 
@@ -261,6 +270,7 @@ public class NavGrid : MonoBehaviour
         else if (_algorithm != null) {
             _algorithm.AbortAndReset();
         }
+
         
 
         if (!Mathf.Approximately(_collisionCheckerHeight, _previousCollisionCheckerHeight))
@@ -270,6 +280,17 @@ public class NavGrid : MonoBehaviour
                 return;
             }
             _previousCollisionCheckerHeight = _collisionCheckerHeight;
+            RecalculateTraversabilityOfEntireGrid();
+        }
+
+
+        if(!Mathf.Approximately(_obstacleCollisionPadding, _previousObstacleCollisionPadding))
+        {
+            if (!Application.isPlaying) {
+                _obstacleCollisionPadding = _previousObstacleCollisionPadding; //💬 Lock sliderbar if game is not playing
+                return;
+            }
+            _previousObstacleCollisionPadding = _obstacleCollisionPadding;
             RecalculateTraversabilityOfEntireGrid();
         }
 

@@ -1325,6 +1325,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1374717742}
   - component: {fileID: 1374717741}
+  - component: {fileID: 1374717743}
   m_Layer: 0
   m_Name: AStar Algorithm
   m_TagString: Untagged
@@ -1345,6 +1346,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _showDebuggingGizmos: 1
+  _pathSimplifier: {fileID: 1374717743}
 --- !u!4 &1374717742
 Transform:
   m_ObjectHideFlags: 0
@@ -1360,6 +1362,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1068773178}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1374717743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1374717740}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa512d1d5e67ad44ac6b5408a524c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1870132886
 GameObject:
   m_ObjectHideFlags: 0
@@ -1520,6 +1534,26 @@ PrefabInstance:
       propertyPath: _algorithm
       value: 
       objectReference: {fileID: 1374717741}
+    - target: {fileID: 3484464229861482969, guid: 21f695034f50d4ba1ab0059a12cdc8bc,
+        type: 3}
+      propertyPath: _previousAlgorithm
+      value: 
+      objectReference: {fileID: 1374717741}
+    - target: {fileID: 3484464229861482969, guid: 21f695034f50d4ba1ab0059a12cdc8bc,
+        type: 3}
+      propertyPath: _obstacleLayer.m_Bits
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3484464229861482969, guid: 21f695034f50d4ba1ab0059a12cdc8bc,
+        type: 3}
+      propertyPath: _obstacleCollisionPadding
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3484464229861482969, guid: 21f695034f50d4ba1ab0059a12cdc8bc,
+        type: 3}
+      propertyPath: _collisionPostProcessingTunnelWidth
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6067049099174111383, guid: 21f695034f50d4ba1ab0059a12cdc8bc,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -1593,6 +1627,11 @@ PrefabInstance:
       propertyPath: _navGrid
       value: 
       objectReference: {fileID: 366829866}
+    - target: {fileID: 1539641211147733709, guid: 0a1a3f5adeb0342b49d44583cfd5d730,
+        type: 3}
+      propertyPath: m_IsKinematic
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3271883727968293047, guid: 0a1a3f5adeb0342b49d44583cfd5d730,
         type: 3}
       propertyPath: m_Name
