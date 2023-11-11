@@ -22,6 +22,8 @@ public class AStarAlgorithm : MonoBehaviour
     public delegate Vector3 GetWorldPositionOfTile(Vector2Int tile);
     GetWorldPositionOfTile getWorldPositionOfTile;
 
+    PathNode[] _finalPath = Array.Empty<PathNode>();
+
     float startTime;
 
 
@@ -45,6 +47,7 @@ public class AStarAlgorithm : MonoBehaviour
         //💬 Preparation & Cleanup---------------------------------------------------------------------------------
         _openTiles.Clear();
         _closedTiles.Clear();
+        _finalPath = Array.Empty<PathNode>();
 
         //💬 Preparing startingTile and currentTile----------------------------------------------------------------------
         AStarScoresTile startingTile = new(0m, decimal.MaxValue, decimal.MaxValue, new(-1,-1), startingTileIndex);
@@ -57,12 +60,12 @@ public class AStarAlgorithm : MonoBehaviour
         {
             if (_openTiles.Count == 0 || _abortRequested)
             {
-                float realtimeSinceStartup = Time.realtimeSinceStartup;
+                float currentTime = Time.realtimeSinceStartup;
                 //💬---------------------------------------------------------------------------------------
                 Debug.Log("A STAR ALGORITHM: GetPath(): BREAK from while() loop: "
                     + (_abortRequested ? "ABORT REQUESTED" : "openTiles.Count == 0")
                     + "Searched " + (_openTiles.Count + _closedTiles.Count)
-                    + " tiles in " + (realtimeSinceStartup - startTime) * 1000f + " milliseconds "
+                    + " tiles in " + (currentTime - startTime) * 1000f + " milliseconds "
                     + "(" + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
                 //-----------------------------------------------------------------------------------------
 
@@ -92,30 +95,38 @@ public class AStarAlgorithm : MonoBehaviour
         }
         //💬 COMPILE RESULT-------------------------------------------------------------------------------
         List<Vector2Int> shortestPath = MarchBackwardToCompileFinalResult(destinationTileIndex, startingTileIndex);
-        PathNode[] shortestPath3D = new PathNode[shortestPath.Count];
+        _finalPath = new PathNode[shortestPath.Count];
         for (int i = 0; i < shortestPath.Count; i++)
         {
-            shortestPath3D[i].Position = getWorldPositionOfTile(shortestPath[i]);
+            _finalPath[i].Position = getWorldPositionOfTile(shortestPath[i]);
         }
 
         //💬-------------------------------------------------------------------------------------------
+        float realtimeSinceStartup = Time.realtimeSinceStartup;
         Debug.Log("A STAR ALGORITHM: GetPath(): Searched " + (_openTiles.Count + _closedTiles.Count) 
-            + " tiles in " + (Time.realtimeSinceStartup - startTime)*1000f + " milliseconds  (" 
+            + " tiles in " + (realtimeSinceStartup - startTime)*1000f + " milliseconds  (" 
             + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
         //----------------------------------------------------------------------------------------------
 
-        return shortestPath3D;
+        return _finalPath;
     }
+
 
 
 
 
     ///-------------------------------------------------------------------------------<summary>
     /// Description here... </summary>
-    public void RequestAbort() //--------------------------------------------------------------
+    public void AbortAndReset() //--------------------------------------------------------------
     {
+
         if (_currentlyPathfinding)
             _abortRequested = true;
+
+        //💬 Reset
+        _closedTiles.Clear();
+        _openTiles.Clear();
+        _finalPath = Array.Empty<PathNode>();
     }
 
 
@@ -273,6 +284,7 @@ public class AStarAlgorithm : MonoBehaviour
         float gridTileSize = Mathf.Abs(getWorldPositionOfTile(new(0,0)).x - getWorldPositionOfTile(new(1,0)).x);
         Vector3 rectangleSize = new(1.0f * gridTileSize, 0f, 1.0f * gridTileSize);
 
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Low opacity for OPEN tiles
         Gizmos.color = new Color(0, 1f, 0.4f, 0.07f); 
         foreach (Vector2Int tile in _openTiles.Keys)
@@ -280,11 +292,21 @@ public class AStarAlgorithm : MonoBehaviour
             Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
         }
 
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Greater opacity for CLOSED tiles
         Gizmos.color = new Color(0, 1f, 0.5f, 0.15f); 
         foreach (Vector2Int tile in _closedTiles.Keys)
         {
             Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
+        }
+
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        //💬 Draws green circles along highlighted tile path:
+        Gizmos.color = new Color(0, 1, 0.3f, 0.25f); //💬 Transparent cyan
+        for (int i = 1; i < _finalPath.Length; i++)
+        {
+            Gizmos.DrawSphere(_finalPath[i].Position, 0.12f);
+            Gizmos.DrawLine (_finalPath[i - 1].Position, _finalPath[i].Position);
         }
     }
 }

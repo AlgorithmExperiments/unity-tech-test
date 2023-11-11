@@ -60,15 +60,7 @@ public class NavGrid : MonoBehaviour
     List<Collider> _dynamicObstacles = new();
 
 
-    //bool _currentlyPathFinding = false;
 
-
-    //bool _abortRequested = false;
-
-
-    
-
-    
 
 
 
@@ -76,76 +68,10 @@ public class NavGrid : MonoBehaviour
 
     void Start()
     {
-        //💬
-        //Debug.Log("NAV GRID: Start() was called.");
-
         RepopulateTilesAndResizeMapToPerfectFit();
     }
 
 
-
-    void OnValidate()
-    {
-
-        if(_algorithm != _previousAlgorithm)
-        {
-            if(_previousAlgorithm)
-                _previousAlgorithm.RequestAbort();
-        }
-        
-
-        if (!Mathf.Approximately(_collisionCheckerHeight, _previousCollisionCheckerHeight))
-        {
-            if (!Application.isPlaying)
-            {
-                _collisionCheckerHeight = _previousCollisionCheckerHeight; //💬 Lock sliderbar if game is not playing
-                return;
-            }
-
-            _previousCollisionCheckerHeight = _collisionCheckerHeight;
-            RecalculateTraversabilityOfEntireGrid();
-        }
-
-
-
-        if (!Mathf.Approximately(_tileSize, _previousTileSize))
-        {
-            if (!Application.isPlaying)
-            {
-                _tileSize = _previousTileSize; //💬 Lock sliderbar if game is not playing
-                return;
-            }
-
-            float collisionPlaneWorldSizeMeters = transform.localScale.x; //We'll assume world map is symmetric in x and y dimensions
-            
-            _gridTilesPerPlane = Mathf.RoundToInt(collisionPlaneWorldSizeMeters/_tileSize); //ToDo: Update this to Vector2Int
-            
-            _tileSize = collisionPlaneWorldSizeMeters/_gridTilesPerPlane; 
-            _previousTileSize = _tileSize;
-            
-            RepopulateTilesAndResizeMapToPerfectFit();
-        }
-
-        if (_showDebuggingGizmos != _previousShowDebuggingGizmos)
-        {
-            _previousShowDebuggingGizmos = _showDebuggingGizmos;
-            _algorithm.ShowDebuggingGizmos(_showDebuggingGizmos);
-        }
-
-
-        bool gridTileCountXChanged = _gridTileCountXY.x != _previousGridTileCountXY.x;
-        bool gridTileCountYChanged = _gridTileCountXY.y != _previousGridTileCountXY.y;
-        if (gridTileCountXChanged || gridTileCountYChanged)
-        {
-            if (!Application.isPlaying)
-            {
-                _gridTileCountXY = _previousGridTileCountXY; //💬 Lock values if game is not playing
-                return;
-            }
-            RepopulateTilesAndResizeMapToPerfectFit(true);
-        }
-
-    }
 
 
 
@@ -155,11 +81,10 @@ public class NavGrid : MonoBehaviour
         {
             foreach (Collider collider in _dynamicObstacles)
             {
-                RecalculateTraversabilityAroundObstacleOnly(collider.bounds);
+                UpdateTilesAroundMovingObstacle(collider.bounds);
             }
         }
     }
-
 
 
 
@@ -221,8 +146,6 @@ public class NavGrid : MonoBehaviour
 
     void RepopulateTilesAndResizeMapToPerfectFit(bool hasMapSizeChanged = false)
     {
-        //💬
-        //Debug.Log("NAV GRID: PopulateTilesAndTrimPlaneToPerfectFit() was called");
 
         if (hasMapSizeChanged)
             transform.localScale = new (_gridTileCountXY.x*_tileSize, 48, _gridTileCountXY.y*_tileSize);
@@ -274,7 +197,7 @@ public class NavGrid : MonoBehaviour
 
 
 
-    void RecalculateTraversabilityAroundObstacleOnly(Bounds targetObstacleWorldBounds)
+    void UpdateTilesAroundMovingObstacle(Bounds targetObstacleWorldBounds)
     {
         if (!Application.isPlaying)
         {   //💬
@@ -323,6 +246,74 @@ public class NavGrid : MonoBehaviour
 
 
 
+
+
+
+    void OnValidate()
+    {
+        
+        if(_algorithm != _previousAlgorithm) {
+            if (_previousAlgorithm != null) {
+                _previousAlgorithm.AbortAndReset();
+            }
+            _previousAlgorithm = _algorithm;
+        }
+        else if (_algorithm != null) {
+            _algorithm.AbortAndReset();
+        }
+        
+
+        if (!Mathf.Approximately(_collisionCheckerHeight, _previousCollisionCheckerHeight))
+        {
+            if (!Application.isPlaying) {
+                _collisionCheckerHeight = _previousCollisionCheckerHeight; //💬 Lock sliderbar if game is not playing
+                return;
+            }
+            _previousCollisionCheckerHeight = _collisionCheckerHeight;
+            RecalculateTraversabilityOfEntireGrid();
+        }
+
+
+
+        if (!Mathf.Approximately(_tileSize, _previousTileSize))
+        {
+            if (!Application.isPlaying) {
+                _tileSize = _previousTileSize; //💬 Lock sliderbar if game is not playing
+                return;
+            }
+            float collisionPlaneWorldSizeMeters = transform.localScale.x; //We'll assume world map is symmetric in x and y dimensions
+            _gridTilesPerPlane = Mathf.RoundToInt(collisionPlaneWorldSizeMeters/_tileSize); //ToDo: Update this to Vector2Int
+            _tileSize = collisionPlaneWorldSizeMeters/_gridTilesPerPlane; 
+            _previousTileSize = _tileSize;
+            RepopulateTilesAndResizeMapToPerfectFit();
+        }
+
+
+
+        if (_showDebuggingGizmos != _previousShowDebuggingGizmos) {
+            _previousShowDebuggingGizmos = _showDebuggingGizmos;
+            _algorithm.ShowDebuggingGizmos(_showDebuggingGizmos);
+        }
+
+
+
+        bool gridTileCountXChanged = _gridTileCountXY.x != _previousGridTileCountXY.x;
+        bool gridTileCountYChanged = _gridTileCountXY.y != _previousGridTileCountXY.y;
+        if (gridTileCountXChanged || gridTileCountYChanged)
+        {
+            if (!Application.isPlaying) {
+                _gridTileCountXY = _previousGridTileCountXY; //💬 Lock values if game is not playing
+                return;
+            }
+            RepopulateTilesAndResizeMapToPerfectFit(true);
+        }
+    }
+
+
+
+
+
+
     ///---------------------------------------------------------------------------------------<summary>
     /// Debugging visualizations (only visible when _showDebuggingGizmos is toggled to TRUE).
     /// Requires "draw Gizmos" toggle to be set to ON in the editor viewport. </summary>
@@ -360,15 +351,6 @@ public class NavGrid : MonoBehaviour
             {
                 Gizmos.DrawWireCube(tile.CenterPointWorldPosition, rectangleSize);
             }
-        }
-
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        //💬 Draws green circles along highlighted tile path:
-        Gizmos.color = new Color(0, 1, 0.3f, 0.25f); //💬 Transparent cyan
-        for (int i = 1; i < _finalTilePath.Length; i++)
-        {
-            Gizmos.DrawSphere(_finalTilePath[i].Position, 0.12f);
-            Gizmos.DrawLine (_finalTilePath[i - 1].Position, _finalTilePath[i].Position);
         }
     }
 
