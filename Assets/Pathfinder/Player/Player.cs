@@ -12,15 +12,19 @@ public class Player : MonoBehaviour
     [SerializeField]
     private float _speed = 10.0f;
 
+    
+
     void Update()
     {
         // Check Input
         if (Input.GetMouseButtonUp(0))
         {
+            LayerMask _terrainLayerMask= LayerMask.GetMask("Default");
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out var hitInfo))
+            if (Physics.Raycast(ray, out var hitInfo, Mathf.Infinity, _terrainLayerMask))
             {
                 _currentPath = _navGrid.GetPath(transform.position, hitInfo.point);
+
                 _currentPathIndex = 1;
             }
         }
