@@ -4,6 +4,7 @@
 Unity C# Pathfinding Implementation incorporating:
 - Complete pathfinding solution utilizing an implementation of the A* algorithm
 - Fully realtime dynamic obstacle detection with configurable layer filtering
+- After physics collisions, tiles continuously update around moving obstacles until they halt
 - If destination is unreachable (inside an obstacle), reroutes to the nearest best tile
 - Resizeable grid dimensions with sliders for adjusting tile size
 - Collision box height slider for adjustable obstacle overhang detection.
