@@ -1,38 +1,55 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 
-public class CatmullRomSplineBuilder
+public class CatmullRomSplineBuilder : MonoBehaviour
 {
-    public int numberOfPoints = 50;
+    [SerializeField]
+    int _numberOfPoints = 36;
 
-    public List<Vector3> GetSpline(Vector3[] controlPoints)
+    List<PathNode> _splinePath = new();
+
+    bool _showDebuggingGizmos = true;
+
+    public void Reset()
     {
-        if (controlPoints.Length < 2) return new List<Vector3>();
-
-        List<Vector3> splinePoints = CalculateCatmullRomSpline(new List<Vector3>(controlPoints), numberOfPoints);
-        return splinePoints;
+        _splinePath.Clear();
     }
 
-    private List<Vector3> CalculateCatmullRomSpline(List<Vector3> points, int numberOfPoints)
+
+
+    public List<PathNode> GetSplinePath(List<PathNode> controlPoints)
     {
-        List<Vector3> splinePoints = new List<Vector3>();
 
-        for (int i = 0; i < points.Count - 1; i++)
+        //Debug.Log("CATMULL ROM SPLINE BUILDER: GetSplinePath() was called. controlPoints.Count = " + controlPoints.Count);
+
+        if (controlPoints == null || controlPoints.Count < 2)
+            return new List<PathNode>(controlPoints);
+
+        Reset();
+        
+        return CalculatePathPointsAlongCatmullRomSpline(controlPoints);
+    }
+
+
+    List<PathNode> CalculatePathPointsAlongCatmullRomSpline(List<PathNode> controlPoints)
+    {
+        _splinePath = new List<PathNode>();
+
+        for (int i = 0; i < controlPoints.Count - 1; i++)
         {
-            Vector3 p0 = i == 0 ? points[i] : points[i - 1];
-            Vector3 p1 = points[i];
-            Vector3 p2 = points[i + 1];
-            Vector3 p3 = i == points.Count - 2 ? points[i + 1] : points[i + 2];
+            Vector3 p0 = (i == 0) ? controlPoints[i].Position : controlPoints[i - 1].Position;
+            Vector3 p1 = controlPoints[i].Position;
+            Vector3 p2 = controlPoints[i + 1].Position;
+            Vector3 p3 = (i == controlPoints.Count - 2) ? controlPoints[i + 1].Position : controlPoints[i + 2].Position;
 
-            for (int j = 0; j < numberOfPoints; j++)
+            for (int j = 0; j < _numberOfPoints; j++)
             {
-                float t = j / (float)numberOfPoints;
+                float t = j / (float)_numberOfPoints;
                 Vector3 point = CalculateCatmullRomPoint(t, p0, p1, p2, p3);
-                splinePoints.Add(point);
+                _splinePath.Add(new PathNode(point));
             }
         }
-
-        return splinePoints;
+        return _splinePath;
     }
 
     private Vector3 CalculateCatmullRomPoint(float t, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3)
@@ -47,4 +64,34 @@ public class CatmullRomSplineBuilder
 
         return a * p0 + b * p1 + c * p2 + d * p3;
     }
+
+
+
+    ///-------------------------------------------------------------------------------<summary>
+    /// Description here... </summary>
+    public void ShowDebuggingGizmos(bool newVisibility) //-------------------------------------
+    {
+        _showDebuggingGizmos = newVisibility;
+    }
+
+
+
+    private void OnDrawGizmos()
+    {
+        if (!_showDebuggingGizmos)
+            return;
+
+        if (_splinePath != null && _splinePath.Count > 0)
+        {
+            //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            //💬 Draws purple line along highlighted tile path:
+            Gizmos.color = new Color(1f, 0.1f, 0.9f, 1f); //💬 purple
+            for (int i = 1; i < _splinePath.Count; i++)
+            {
+                //Gizmos.DrawSphere(_splinePath[i].Position, 0.12f);
+                Gizmos.DrawLine (_splinePath[i - 1].Position, _splinePath[i].Position);
+            }
+        }
+    }
+    
 }

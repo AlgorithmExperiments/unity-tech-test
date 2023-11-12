@@ -6,4 +6,10 @@ public struct PathNode
     /// World position of the node
     /// </summary>
     public Vector3 Position;
+
+
+    public PathNode(Vector3 Position)
+    {
+        this.Position = Position;
+    }
 }

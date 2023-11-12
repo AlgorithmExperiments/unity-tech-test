@@ -13,10 +13,10 @@ public class NavGrid : MonoBehaviour
     bool _previousShowDebuggingGizmos = true;
 
     [SerializeField]
-    AStarAlgorithm _algorithm;
+    AStarPathfindingAlgorithm _algorithm;
 
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
-    AStarAlgorithm _previousAlgorithm;
+    AStarPathfindingAlgorithm _previousAlgorithm;
 
     [SerializeField] [Range(0.1f, 3f)]
     float _tileSize = 1.0f;
@@ -29,20 +29,20 @@ public class NavGrid : MonoBehaviour
 
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
     Vector2Int _previousGridTileCountXY = new(48,48);
-
-    [SerializeField] [Range(0f, 3f)]
-    float _obstacleCollisionPadding = 0f;
+    
+    [SerializeField] [Range(1.25f, 3f)]
+    float _collisionTunnelWidth = 1.25f;
 
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
-    float _previousObstacleCollisionPadding = 0f;
+    float _previousCollisionTunnelWidth = 1.25f;
+
+    [HideInInspector] [SerializeField]
+    float _obstacleCollisionPadding = 0.5f;
 
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
     float _gridTilesPerPlane = 48.0f; 
 
-    [SerializeField] [Range(0.5f, 3f)]
-    float _collisionPostProcessingTunnelWidth = 1f;
-
-    [SerializeField] [Range(0.05f, 8f)]
+    [SerializeField] [Range(2f, 6f)]
     float _collisionCheckerHeight = 2f;
 
     [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
@@ -71,6 +71,14 @@ public class NavGrid : MonoBehaviour
 
 
 
+
+    void Awake()
+    {
+        if (!_algorithm)
+        {
+            Debug.LogError("NavGrid inspector panel requires a reference to a PathfindingAlgorithm");
+        }
+    }
 
 
 
@@ -249,7 +257,7 @@ public class NavGrid : MonoBehaviour
     /// Given the current and desired location, return a path to the destination.  </summary>
     public PathNode[] GetPath(Vector3 origin, Vector3 destination) //---------------------------
     {
-        _finalTilePath = _algorithm.GetPath(GetIndexOfGridTileAtWorldPosition(origin), GetIndexOfGridTileAtWorldPosition(destination), _gridTileCountXY, IsTileTraversable, GetWorldPositionOfTile, new(_collisionPostProcessingTunnelWidth, _collisionCheckerHeight));
+        _finalTilePath = _algorithm.GetPath(GetIndexOfGridTileAtWorldPosition(origin), GetIndexOfGridTileAtWorldPosition(destination), _gridTileCountXY, IsTileTraversable, GetWorldPositionOfTile, new(_collisionTunnelWidth, _collisionCheckerHeight));
         return _finalTilePath;
     }
 
@@ -260,6 +268,7 @@ public class NavGrid : MonoBehaviour
 
     void OnValidate()
     {
+
         
         if(_algorithm != _previousAlgorithm) {
             if (_previousAlgorithm != null) {
@@ -284,13 +293,14 @@ public class NavGrid : MonoBehaviour
         }
 
 
-        if(!Mathf.Approximately(_obstacleCollisionPadding, _previousObstacleCollisionPadding))
+        if(!Mathf.Approximately(_collisionTunnelWidth, _previousCollisionTunnelWidth))
         {
             if (!Application.isPlaying) {
-                _obstacleCollisionPadding = _previousObstacleCollisionPadding; //💬 Lock sliderbar if game is not playing
+                _collisionTunnelWidth = _previousCollisionTunnelWidth; //💬 Lock sliderbar if game is not playing
                 return;
             }
-            _previousObstacleCollisionPadding = _obstacleCollisionPadding;
+            _previousCollisionTunnelWidth = _collisionTunnelWidth;
+            _obstacleCollisionPadding = _collisionTunnelWidth/2;
             RecalculateTraversabilityOfEntireGrid();
         }
 
@@ -364,7 +374,7 @@ public class NavGrid : MonoBehaviour
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Draws red rectangles around tiles containing obstacles:
-        Gizmos.color = new Color(1,0,0,0.5f); //💬 Transparent red
+        Gizmos.color = new Color(1,0,0,0.35f); //💬 Transparent red
         Vector3 rectangleSize = new(1.0f * _tileSize, 0f, 1.0f * _tileSize);
         foreach (NavGridTile tile in _navGridTiles)
         {

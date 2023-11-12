@@ -5,12 +5,16 @@ using UnityEngine;
 using Utils;
 
 
-public class AStarAlgorithm : MonoBehaviour
+public class AStarPathfindingAlgorithm : MonoBehaviour
 {
-    [SerializeField] [HideInInspector]
+    [SerializeField]
     bool _showDebuggingGizmos = true;
 
+    [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
+    bool _previousShowDebuggingGizmos = true;
+
     [SerializeField] PathSimplifier _pathSimplifier;
+    [SerializeField] CatmullRomSplineBuilder _catmullRomSplineBuilder;
 
     AStarOpenTilesPriorityDictionary _openTiles = new AStarOpenTilesPriorityDictionary();
     Dictionary<Vector2Int, AStarScoresTile> _closedTiles = new();
@@ -24,8 +28,7 @@ public class AStarAlgorithm : MonoBehaviour
     public delegate Vector3 GetWorldPositionOfTile(Vector2Int tile);
     GetWorldPositionOfTile getWorldPositionOfTile;
 
-    PathNode[] _rawAStarPath = Array.Empty<PathNode>();
-    PathNode[] _reducedAStarPath = Array.Empty<PathNode>();
+    List<PathNode> _rawAStarPath = new List<PathNode>();
 
     float startTime;
 
@@ -96,10 +99,9 @@ public class AStarAlgorithm : MonoBehaviour
         }
         //💬 COMPILE RESULT-------------------------------------------------------------------------------
         List<Vector2Int> shortestPath = MarchBackwardToCompileFinalResult(destinationTileIndex, startingTileIndex);
-        _rawAStarPath = new PathNode[shortestPath.Count];
         for (int i = 0; i < shortestPath.Count; i++)
         {
-            _rawAStarPath[i].Position = getWorldPositionOfTile(shortestPath[i]);
+            _rawAStarPath.Add(new PathNode(getWorldPositionOfTile(shortestPath[i])));
         }
 
         //💬-------------------------------------------------------------------------------------------
@@ -109,8 +111,14 @@ public class AStarAlgorithm : MonoBehaviour
             + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
         //----------------------------------------------------------------------------------------------
 
-        _reducedAStarPath = _pathSimplifier.SimplifyPath(_rawAStarPath, collisionPostProcessingTunnelBox).ToArray();
-        return _reducedAStarPath;
+        List<PathNode> simplifiedNodePath = _rawAStarPath;
+        if (_pathSimplifier != null)
+            simplifiedNodePath = _pathSimplifier.SimplifyPath(_rawAStarPath, collisionPostProcessingTunnelBox);
+        if (_catmullRomSplineBuilder != null)
+            simplifiedNodePath = _catmullRomSplineBuilder.GetSplinePath(simplifiedNodePath);
+        return simplifiedNodePath.ToArray();
+
+        //return _catmullRomSplineBuilder.GetSplinePath(_pathSimplifier.SimplifyPath(_rawAStarPath, collisionPostProcessingTunnelBox)).ToArray();
     }
 
 
@@ -131,18 +139,27 @@ public class AStarAlgorithm : MonoBehaviour
 
 
     ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
+    /// Clears data from data structures </summary>
     public void Reset() //--------------------------------------------------------------
     {
-
-        if (_currentlyPathfinding)
-            _abortRequested = true;
-
-        //💬 Reset
         _closedTiles.Clear();
         _openTiles.Clear();
-        _rawAStarPath = Array.Empty<PathNode>();
-        _pathSimplifier.Reset();
+        _rawAStarPath.Clear();
+
+        if (_pathSimplifier != null)
+            _pathSimplifier.Reset();
+
+        if (_catmullRomSplineBuilder != null)
+            _catmullRomSplineBuilder.Reset();
+    }
+
+
+    void OnValidate()
+    {
+        if (_showDebuggingGizmos != _previousShowDebuggingGizmos) {
+            _previousShowDebuggingGizmos = _showDebuggingGizmos;
+            ShowDebuggingGizmos(_showDebuggingGizmos);
+        }
     }
 
 
@@ -151,6 +168,12 @@ public class AStarAlgorithm : MonoBehaviour
     public void ShowDebuggingGizmos(bool newVisibility) //-------------------------------------
     {
         _showDebuggingGizmos = newVisibility;
+
+        if(_pathSimplifier != null)
+            _pathSimplifier.ShowDebuggingGizmos(newVisibility);
+
+        if(_catmullRomSplineBuilder != null)
+            _catmullRomSplineBuilder.ShowDebuggingGizmos(newVisibility);
     }
 
 
@@ -285,13 +308,7 @@ public class AStarAlgorithm : MonoBehaviour
 
 
 
-    private void OnValidate()
-    {
-        if (!_pathSimplifier)
-        {
-            Debug.LogError("AStarAlgorithm inspector requires a reference to a PathSimplifier");
-        }
-    }
+    
 
 
 
@@ -322,15 +339,6 @@ public class AStarAlgorithm : MonoBehaviour
         foreach (Vector2Int tile in _closedTiles.Keys)
         {
             Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
-        }
-
-        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        //💬 Draws green circles along highlighted tile path:
-        Gizmos.color = new Color(0, 1, 0.3f, 0.25f); //💬 Transparent cyan
-        for (int i = 1; i < _reducedAStarPath.Length; i++)
-        {
-            Gizmos.DrawSphere(_reducedAStarPath[i].Position, 0.12f);
-            Gizmos.DrawLine (_reducedAStarPath[i - 1].Position, _reducedAStarPath[i].Position);
         }
     }
 }

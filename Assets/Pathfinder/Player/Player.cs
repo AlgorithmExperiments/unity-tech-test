@@ -12,6 +12,16 @@ public class Player : MonoBehaviour
     [SerializeField]
     private float _speed = 10.0f;
 
+
+
+    void Awake()
+    {
+        if (!_navGrid)
+        {
+            Debug.LogError("PLAYER: Player gameobject requires an inspector reference to a NavGrid");
+        }
+    }
+
     
 
     void Update()
@@ -24,7 +34,6 @@ public class Player : MonoBehaviour
             if (Physics.Raycast(ray, out var hitInfo, Mathf.Infinity, _terrainLayerMask))
             {
                 _currentPath = _navGrid.GetPath(transform.position, hitInfo.point);
-
                 _currentPathIndex = 1;
             }
         }
@@ -50,4 +59,5 @@ public class Player : MonoBehaviour
                 
         }
     }
+
 }

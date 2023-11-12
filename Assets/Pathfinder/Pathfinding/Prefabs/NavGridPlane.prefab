@@ -155,14 +155,17 @@ MonoBehaviour:
   _previousShowDebuggingGizmos: 1
   _algorithm: {fileID: 0}
   _previousAlgorithm: {fileID: 0}
-  _gridTileSize: 1
-  _previousGridTileSize: 1
+  _tileSize: 1
+  _previousTileSize: 1
   _gridTileCountXY: {x: 48, y: 48}
   _previousGridTileCountXY: {x: 48, y: 48}
+  _collisionTunnelWidth: 1.25
+  _previousCollisionTunnelWidth: 1.25
+  _obstacleCollisionPadding: 0.5
   _gridTilesPerPlane: 48
   _collisionCheckerHeight: 2
   _previousCollisionCheckerHeight: 2
   _obstacleLayer:
     serializedVersion: 2
-    m_Bits: 16
+    m_Bits: 0
   _worldSizeOfFittedGrid: {x: 48, y: 0, z: 48}
