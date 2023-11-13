@@ -1661,7 +1661,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d342102a7d73846be98feab259fa701a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _showGridVisualizations: 1
+  _showGridVisualizations: 0
   _showAlgorithmVisualizations: 1
   _previousShowAlgorithmVisualizations: 1
   _algorithm: {fileID: 39418940}
@@ -1680,6 +1680,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   _worldSizeOfFittedGrid: {x: 48, y: 0, z: 48}
+  _dynamicObstacles: []
+  _gizmoPreviousDynamicObstacles: []
+  _previousDynamicObstacleCount: 0
+  _gizmosTilesWithDynamicObstacles: []
 --- !u!33 &4633102182565036937
 MeshFilter:
   m_ObjectHideFlags: 0

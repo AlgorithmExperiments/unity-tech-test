@@ -60,15 +60,17 @@ public class NavGrid : MonoBehaviour
     [HideInInspector] [SerializeField] ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY ////
     Vector3 _worldSizeOfFittedGrid = new(48, 0, 48); //-------------------------------------
 
-
     float _yPlaneHeightOfDebuggingGizmos = 0.04f;
-
 
     PathNode[] _finalTilePath = Array.Empty<PathNode>();
 
-
     List<Collider> _dynamicObstacles = new();
 
+    List<Collider> _gizmoPreviousDynamicObstacles = new();
+
+    List<Vector2Int> _gizmosTilesWithDynamicObstacles = new();
+
+    int _gizmoPreviousDynamicObstacleCount = 0;
 
 
 
@@ -96,12 +98,15 @@ public class NavGrid : MonoBehaviour
 
     private void Update()
     {
-        if (_dynamicObstacles.Count > 0)
-        {
-            foreach (Collider collider in _dynamicObstacles)
-            {
+        bool existDynamicallyMovingObstacles = (_dynamicObstacles.Count > 0);
+        if (existDynamicallyMovingObstacles || _dynamicObstacles.Count != _gizmoPreviousDynamicObstacleCount) {
+            _gizmosTilesWithDynamicObstacles.Clear();
+            List<Collider> obstacleColliders = existDynamicallyMovingObstacles ? _dynamicObstacles : _gizmoPreviousDynamicObstacles;
+            foreach (Collider collider in _dynamicObstacles) {
                 UpdateTilesAroundObstacleInMotion(collider.bounds);
             }
+            _gizmoPreviousDynamicObstacles = new List<Collider>(_dynamicObstacles);
+            _gizmoPreviousDynamicObstacleCount = _dynamicObstacles.Count;
         }
     }
 
@@ -237,19 +242,24 @@ public class NavGrid : MonoBehaviour
         Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize + obstacleCollisionPaddingInMeters, _collisionCheckerHeight / 2, halfTileSize + obstacleCollisionPaddingInMeters); // tall box
         Vector3 gridCornerPointOffset = -_worldSizeOfFittedGrid/2;
         
-        int outerPadding = 2;
+        int outerPadding = 1;
         Vector2Int tileMinXY = GetIndexOfGridTileAtWorldPosition(targetObstacleWorldBounds.min);
         Vector2Int tileMaxXY = GetIndexOfGridTileAtWorldPosition(targetObstacleWorldBounds.max);
         int xMin = Mathf.RoundToInt(Mathf.Max(0, tileMinXY.x - outerPadding));
         int yMin = Mathf.RoundToInt(Mathf.Max(0, tileMinXY.y - outerPadding));
         int xMax = Mathf.RoundToInt(Mathf.Min(tileMaxXY.x + outerPadding, _navGridTiles.GetLength(0)));
         int yMax = Mathf.RoundToInt(Mathf.Min(tileMaxXY.y + outerPadding, _navGridTiles.GetLength(1)));
+        
         for (int x = xMin; x < xMax; x++)
         {
             for (int y = yMin; y < yMax; y++)
             {
                 Vector3 tileCenter = new Vector3((x + 0.5f) * _tileSize, _collisionCheckerHeight / 2, (y + 0.5f) * _tileSize);
                 tileCenter += gridCornerPointOffset;
+                bool isTileTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
+                if (!isTileTraversable) {
+                    _gizmosTilesWithDynamicObstacles.Add(new(x, y));
+                }
                 _navGridTiles[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
                 _navGridTiles[x, y].CenterPointWorldPosition = new Vector3( tileCenter.x, _yPlaneHeightOfDebuggingGizmos, tileCenter.z);
             }
@@ -379,8 +389,8 @@ public class NavGrid : MonoBehaviour
 
         
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-        //💬 Draws red rectangles around tiles containing obstacles:
-        Gizmos.color = new Color(1,0,0,0.17f); //💬 Transparent red
+        //💬 Draws red rectangles outlines around tiles containing obstacles:
+        Gizmos.color = new Color(1,0,0,0.14f); //💬 Transparent red
         Vector3 rectangleSize = new(1.0f * _tileSize, 0f, 1.0f * _tileSize);
 
         foreach (NavGridTile tile in _navGridTiles)
@@ -390,6 +400,14 @@ public class NavGrid : MonoBehaviour
                 Gizmos.DrawWireCube(tile.CenterPointWorldPosition, rectangleSize);
             }
         }
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        //💬 Draws filled-in red rectangles for tiles containing dynmically moving obstacles:
+        Gizmos.color = new Color(1,0,0,0.25f); //💬 Transparent red
+        foreach (Vector2Int tileIndex in _gizmosTilesWithDynamicObstacles) {
+            Gizmos.DrawCube(_navGridTiles[tileIndex.x, tileIndex.y].CenterPointWorldPosition, rectangleSize);
+        }
+        _gizmosTilesWithDynamicObstacles.Clear();
+
     }
 
 }

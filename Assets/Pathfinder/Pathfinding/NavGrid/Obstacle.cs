@@ -45,8 +45,10 @@ public class Obstacle : MonoBehaviour
 
 
     void SleepIfCompletelyStatic()
-    {
-        if (Mathf.Approximately(_rigidbody.velocity.sqrMagnitude, 0f) && Mathf.Approximately(_rigidbody.angularVelocity.sqrMagnitude, 0f))
+    { 
+        Vector3 velocity = 1000 * _rigidbody.velocity;
+        Vector3 spinVelocity = 1000 * _rigidbody.angularVelocity;
+        if (Mathf.Approximately(velocity.sqrMagnitude + spinVelocity.sqrMagnitude, 0)) 
             _sleepCounter++;
         else
             _sleepCounter = 0;

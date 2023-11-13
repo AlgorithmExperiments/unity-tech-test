@@ -20,8 +20,6 @@ public class PathSimplifier : NodePathPostProcessor
     List<Vector3> _gizmoNewlyAdjustedNodePositions = new List<Vector3>();
 
 
-
-
     public override void Reset()
     {
         _gizmoCollisionTunnelBoxes.Clear();
