@@ -21,11 +21,6 @@ public class PathSimplifier : NodePathPostProcessor
 
 
 
-    void Start()
-    {
-        _obstacleLayer = Obstacle.UniversalObstacleLayer;
-    }
-
 
     public override void Reset()
     {
@@ -59,6 +54,7 @@ public class PathSimplifier : NodePathPostProcessor
         }
 
         Reset();
+        _obstacleLayer = Obstacle.UniversalObstacleLayer;
         _simplifiedPath = new List<PathNode>(controlPoints); // Initialize a copy of all control points
 
         int i = 0;
@@ -244,8 +240,8 @@ public class PathSimplifier : NodePathPostProcessor
         if (_simplifiedPath != null && _simplifiedPath.Count > 0)
         {
             //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-            //💬 Draws cyan line along highlighted tile path:
-            Gizmos.color = new Color(0, 1, 0.3f, 0.5f); //💬 Transparent cyan
+            //💬 Draws blue line along highlighted tile path:
+            Gizmos.color = new Color(0.2f, 0.35f, 1f, 1f); //💬 solid blue
             for (int i = 1; i < _simplifiedPath.Count; i++)
             {
                 Gizmos.DrawSphere(_simplifiedPath[i].Position, 0.08f);

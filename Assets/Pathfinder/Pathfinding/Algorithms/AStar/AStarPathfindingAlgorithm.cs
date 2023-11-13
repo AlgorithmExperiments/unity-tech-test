@@ -5,203 +5,105 @@ using UnityEngine;
 using Utils;
 
 
-public class AStarPathfindingAlgorithm : MonoBehaviour
-{
-    [Header("--- VIEW DEBUGGING VISUALIZATIONS ---")]
-    [SerializeField]
-    bool _showAlgorithmVisualizations = true;
-
-    [SerializeField] 
-    bool _showPostProcessingVisualizations = true;
-    [HideInInspector] [SerializeField] 
-    bool _previousShowPostProcessingVisualizations = true; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
-
-    [SerializeField]
-    NodePathPostProcessor dummyArray;
-
-    [Space(10)]
-    [Header("--- ADDITIONAL POSTPROCESSING ---")] 
-    [SerializeField] NodePathPostProcessor[] _postProcessors = Array.Empty<NodePathPostProcessor>();
-    [Header("      (performed in order)      ")]
-    [Space(10)]
-
-    AStarOpenTilesPriorityDictionary _openTiles = new AStarOpenTilesPriorityDictionary();
-    Dictionary<Vector2Int, AStarScoresTile> _closedTiles = new();
-
-    bool _currentlyPathfinding = false;
-    bool _abortRequested = false;
-
-    public delegate bool IsTileTraversable(Vector2Int tile);
-    IsTileTraversable isTileTraversable;
-
-    public delegate Vector3 GetWorldPositionOfTile(Vector2Int tile);
-    GetWorldPositionOfTile getWorldPositionOfTile;
+public class AStarPathfindingAlgorithm : PathfindingAlgorithm
+{   
 
     List<PathNode> _rawAStarPath = new List<PathNode>();
 
-    float startTime;
+    AStarOpenTilesPriorityDictionary _neighborTiles = new AStarOpenTilesPriorityDictionary();
+
+    Dictionary<Vector2Int, AStarScoresTile> _investigatedTiles = new();
+
+    
+    
 
 
 
-
-    ///------------------------------------------------------------------------------<summary>
-    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    public PathNode[] GetPath(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile, Vector3 collisionBoxSize)
+    protected override List<PathNode> CalculatePathfinding(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, Vector3 collisionBoxSize)
     {
-        startTime = Time.realtimeSinceStartup;
-        
-        //💬 Store delegates for use in future method calls
-        this.getWorldPositionOfTile = getWorldPositionOfTile; 
-        this.isTileTraversable = isTileTraversable;
+        _startTime = Time.realtimeSinceStartup;
 
-        if (!isTileTraversable(destinationTileIndex))
-        {
+        if (!_isTileTraversable(destinationTileIndex)) {
             destinationTileIndex = GetTraversableTileNearestToUnreachableTarget(destinationTileIndex, startingTileIndex, tileCountXY);
         }
 
         //💬 Preparation & Cleanup---------------------------------------------------------------------------------
         Reset();
 
-        //💬 Preparing startingTile and currentTile----------------------------------------------------------------------
+        //💬 Prepare startingTile and currentTile----------------------------------------------------------------------
         AStarScoresTile startingTile = new(0m, decimal.MaxValue, decimal.MaxValue, new(-1,-1), startingTileIndex);
-        _openTiles.Enqueue(startingTile);
+        _neighborTiles.Enqueue(startingTile);
         Vector2Int currentTileIndex = startingTileIndex;
 
 
-        //💬  A* PATHFINDING ALGORITHM--------------------------------------------------------------------------------
+        //💬 MAIN LOGIC LOOP--------------------------------------------------------------------------------
         while (currentTileIndex != destinationTileIndex)
         {
-            if (_openTiles.Count == 0 || _abortRequested)
+            if (_neighborTiles.Count == 0 || _abortRequested)
             {
-                float currentTime = Time.realtimeSinceStartup;
-                //💬---------------------------------------------------------------------------------------
-                Debug.Log("A STAR ALGORITHM: GetPath(): BREAK from while() loop: "
-                    + (_abortRequested ? "ABORT REQUESTED" : "openTiles.Count == 0")
-                    + "Searched " + (_openTiles.Count + _closedTiles.Count)
-                    + " tiles in " + (currentTime - startTime) * 1000f + " milliseconds "
-                    + "(" + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
+                //💬-DEBUG.LOG()--------------------------------------------------------------------------
+                Debug.Log("A STAR ALGORITHM: GetPath(): ABORTING - broke from while() loop. Reason: " + (_abortRequested ? "ABORT REQUESTED" : "neighborTiles.Count == 0"));
                 //-----------------------------------------------------------------------------------------
-
-                _abortRequested = false;
+                _abortRequested = false; //💬 clean-up
                 break;
             }
 
-            //💬 Retrieve tile from open tiles with the LOWEST FScore--------------------------------------
-            AStarScoresTile currentTile = _openTiles.Dequeue();
+            //💬 SELECTS THE NEXT TILE (LOWEST F-SCORE)--------------------------------------
+            AStarScoresTile currentTile = _neighborTiles.Dequeue();
+            //💬 ADDS IT TO THE COMPLETED-- SET OF TILES-------------------------------------
             currentTileIndex = currentTile.Index;
-            _closedTiles.Add(currentTileIndex, currentTile);
+            _investigatedTiles.Add(currentTileIndex, currentTile);
             
+            //💬 ADDS ANY NEW NEIGHBORS------------------------------------------------------
             if (currentTileIndex != destinationTileIndex)
             {
-                List<AStarScoresTile> newNeighborScores = GetNewNeighborScores(currentTileIndex, startingTileIndex, destinationTileIndex, tileCountXY, isTileTraversable);
+                List<AStarScoresTile> newNeighborScores = GetNewNeighborScores(currentTileIndex, startingTileIndex, destinationTileIndex, tileCountXY);
                 foreach (AStarScoresTile neighborScoresTile in newNeighborScores)
                 {
-                    bool neighborAlreadyInOpenTiles =_openTiles.SetGScoreToNewLowerValue(neighborScoresTile.Index, neighborScoresTile.GScore);
+                    bool neighborAlreadyInOpenTiles =_neighborTiles.SetGScoreToNewLowerValue(neighborScoresTile.Index, neighborScoresTile.GScore);
                     if (!neighborAlreadyInOpenTiles)
-                        _openTiles.Enqueue(neighborScoresTile);
+                        _neighborTiles.Enqueue(neighborScoresTile);
                 }
             }
             else
             { 
-                break; //💬 Finished; exit while() loop and proceed to final step
+                break; //💬 FINISHED; Exit while() loop and proceed to final step
             } 
         }
         //💬 COMPILE RESULT-------------------------------------------------------------------------------
         List<Vector2Int> shortestPath = MarchBackwardToCompileFinalResult(destinationTileIndex, startingTileIndex);
         for (int i = 0; i < shortestPath.Count; i++)
         {
-            _rawAStarPath.Add(new PathNode(getWorldPositionOfTile(shortestPath[i])));
+            _rawAStarPath.Add(new PathNode(_getWorldPositionOfTile(shortestPath[i])));
         }
 
-        //💬-------------------------------------------------------------------------------------------
+        //💬-DEBUG.LOG()--------------------------------------------------------------------------------
         float realtimeSinceStartup = Time.realtimeSinceStartup;
-        Debug.Log("A STAR ALGORITHM: GetPath(): Searched " + (_openTiles.Count + _closedTiles.Count) 
-            + " tiles in " + (realtimeSinceStartup - startTime)*1000f + " milliseconds  (" 
-            + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
+        Debug.Log("A STAR ALGORITHM: GetPath(): Searched " + (_neighborTiles.Count + _investigatedTiles.Count) 
+            + " tiles in " + (realtimeSinceStartup - _startTime)*1000f + " milliseconds  (" 
+            + _neighborTiles.Count + " openTiles and " + _investigatedTiles.Count + " closedTiles)");
         //----------------------------------------------------------------------------------------------
 
-        //💬 Will return this by default:
-        List<PathNode> finalNodePath = _rawAStarPath;
-
-        //💬 Optional PostProcessing Steps: (performed in order)
-        for (int i = 0; i < _postProcessors.Length; i++)
-        {
-            finalNodePath = _postProcessors[i].GetNewPath(finalNodePath, collisionBoxSize);
-        }
-
-        return finalNodePath.ToArray();
+        return _rawAStarPath;
     }
-
-
 
 
 
     ///------------------------------------------------------------------------------<summary>
     /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    public void AbortAndReset() //--------------------------------------------------------------
+    protected override void ResetData() //--------------------------------------------------------------------
     {
-        if (_currentlyPathfinding)
-            _abortRequested = true;
-
-        Reset();
-    }
-
-
-
-
-    ///------------------------------------------------------------------------------<summary>
-    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    public void Reset() //--------------------------------------------------------------------
-    {
-        _closedTiles.Clear();
-        _openTiles.Clear();
+        _investigatedTiles.Clear();
+        _neighborTiles.Clear();
         _rawAStarPath.Clear();
-
-        foreach (NodePathPostProcessor postProcessor in _postProcessors) {
-            postProcessor.Reset();
-        }
-            
     }
 
-
-    ///------------------------------------------------------------------------------<summary>
-    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    void OnValidate()
-    {
-        if (_showPostProcessingVisualizations != _previousShowPostProcessingVisualizations) {
-            _previousShowPostProcessingVisualizations = _showPostProcessingVisualizations;
-            ShowDebuggingGizmosForPostProcessing(_showPostProcessingVisualizations);
-        }
-    }
-
-
-    ///------------------------------------------------------------------------------<summary>
-    /// Sets the visibility of the in-editor debugging visualiation gizmos for the
-    /// algorithm and all of its postprocessing. </summary>
-    public void ShowDebuggingGizmos(bool newVisibility) //-------------------------------------
-    {
-        _showAlgorithmVisualizations = newVisibility;
-
-        foreach (NodePathPostProcessor postProcessor in _postProcessors) {
-            postProcessor.ShowDebuggingGizmos(newVisibility);
-        }
-    }
-
-
-    ///------------------------------------------------------------------------------<summary>
-    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    void ShowDebuggingGizmosForPostProcessing(bool newVisibility) //-------------------------------------
-    {
-        foreach (NodePathPostProcessor postProcessor in _postProcessors) {
-            postProcessor.ShowDebuggingGizmos(newVisibility);
-        }
-    }
 
 
 
     ///------------------------------------------------------------------------------<summary>
     /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    List<AStarScoresTile> GetNewNeighborScores(Vector2Int currentTile, Vector2Int startingTile, Vector2Int destinationTile, Vector2Int tileCountXY, IsTileTraversable isTileTraversable)
+    List<AStarScoresTile> GetNewNeighborScores(Vector2Int currentTile, Vector2Int startingTile, Vector2Int destinationTile, Vector2Int tileCountXY)
     {
         //💬 GET NEIGHBORS----------------------------------------------
         Vector2Int minCornerTile = new (
@@ -218,7 +120,7 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
             for (int y = minCornerTile.y; y <= maxCornerTile.y; y++)
             {
                 Vector2Int neighbor = new(x,y);
-                if (isTileTraversable(neighbor) && !_closedTiles.ContainsKey(neighbor))
+                if (_isTileTraversable(neighbor) && !_investigatedTiles.ContainsKey(neighbor))
                     neighbors.Add(neighbor);
             }
         }
@@ -228,7 +130,7 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
         List<AStarScoresTile> newNeighborScores = new();
         foreach (Vector2Int neighbor in neighbors)
         {
-            decimal gScore = _closedTiles[currentTile].GScore + GetDistanceScore(currentTile, neighbor); // += 1.0 or 1.4
+            decimal gScore = _investigatedTiles[currentTile].GScore + GetDistanceScore(currentTile, neighbor); // += 1.0 or 1.4
             decimal hScore = GetDistanceScore(neighbor, destinationTile);
             newNeighborScores.Add(new(gScore, hScore, gScore+hScore, currentTile, new(neighbor.x, neighbor.y)));
         }
@@ -285,7 +187,7 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
             foreach (Vector2Int tile in perimeterTiles)
             {
                 tile.Clamp(Vector2Int.zero, tileCountXY - Vector2Int.one);
-                if (isTileTraversable(tile)){
+                if (_isTileTraversable(tile)){
                     winners.Add(tile);
                 }
             }
@@ -319,7 +221,7 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
         Vector2Int currentTile = destinationTile;
         while (currentTile != startingTile)
         {
-            currentTile = _closedTiles[currentTile].ParentTile;
+            currentTile = _investigatedTiles[currentTile].ParentTile;
             finalPath.Add(currentTile);
         }
         finalPath.Reverse();
@@ -338,28 +240,28 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
     /// Requires "draw Gizmos" toggle to be set to ON in the editor viewport. </summary>
     private void OnDrawGizmos() //---------------------------------------------------------------------
     {
-        if (getWorldPositionOfTile == null || !_showAlgorithmVisualizations)
+        if (_getWorldPositionOfTile == null || !_showAlgorithmVisualizations)
             return;
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Marks openTiles with low opacity and closedTiles with greater opacity:
-        float gridTileSize = Mathf.Abs(getWorldPositionOfTile(new(0,0)).x - getWorldPositionOfTile(new(1,0)).x);
+        float gridTileSize = Mathf.Abs(_getWorldPositionOfTile(new(0,0)).x - _getWorldPositionOfTile(new(1,0)).x);
         Vector3 rectangleSize = new(1.0f * gridTileSize, 0f, 1.0f * gridTileSize);
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Low opacity for OPEN tiles
         Gizmos.color = new Color(0, 1f, 0.4f, 0.07f); 
-        foreach (Vector2Int tile in _openTiles.Keys)
+        foreach (Vector2Int tile in _neighborTiles.Keys)
         {
-            Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
+            Gizmos.DrawCube(_getWorldPositionOfTile(tile), rectangleSize);
         }
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Greater opacity for CLOSED tiles
         Gizmos.color = new Color(0, 1f, 0.5f, 0.15f); 
-        foreach (Vector2Int tile in _closedTiles.Keys)
+        foreach (Vector2Int tile in _investigatedTiles.Keys)
         {
-            Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
+            Gizmos.DrawCube(_getWorldPositionOfTile(tile), rectangleSize);
         }
         //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Draws green line along highlighted tile path:

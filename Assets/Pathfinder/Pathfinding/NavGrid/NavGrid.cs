@@ -139,7 +139,7 @@ public class NavGrid : MonoBehaviour
     /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     public Vector3 GetWorldPositionOfTile(Vector2Int index) //--------------------------------
     {
-        return _navGridTiles[index.x, index.y].CenterPointWorldPosition;
+        return _navGridTiles[Mathf.Min(index.x, _gridTileCountXY.x - 1), Mathf.Min(index.y, _gridTileCountXY.y - 1)].CenterPointWorldPosition;
     }
 
 
@@ -282,9 +282,9 @@ public class NavGrid : MonoBehaviour
             }
             _previousAlgorithm = _algorithm;
         }
-        else if (_algorithm != null) {
-            _algorithm.AbortAndReset();
-        }
+        //else if (_algorithm != null) {
+        //    _algorithm.AbortAndReset();
+        //}
 
 
         if (!Mathf.Approximately(_collisionCheckerHeight, _previousCollisionCheckerHeight))
@@ -377,10 +377,12 @@ public class NavGrid : MonoBehaviour
             Gizmos.DrawLine((startPos + gridCornerPointOffset), (endPos + gridCornerPointOffset));
         }
 
+        
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         //💬 Draws red rectangles around tiles containing obstacles:
-        Gizmos.color = new Color(1,0,0,0.25f); //💬 Transparent red
+        Gizmos.color = new Color(1,0,0,0.17f); //💬 Transparent red
         Vector3 rectangleSize = new(1.0f * _tileSize, 0f, 1.0f * _tileSize);
+
         foreach (NavGridTile tile in _navGridTiles)
         {
             if (!tile.IsTraversable)
