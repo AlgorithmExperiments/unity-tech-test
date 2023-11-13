@@ -3,6 +3,9 @@
 
 Unity C# Pathfinding Implementation incorporating:
 - Complete pathfinding solution utilizing an implementation of the A* algorithm
+- Catmull-Rom spline-based smoothing between nodes
+- PathSimplifier with radially projected hitTests to increase obstacle avoidance
+- Collision Tunneling for rubust postprocessing of pathfinding
 - Fully realtime dynamic obstacle detection with configurable layer filtering
 - After physics collisions, tiles continuously update around moving obstacles until they halt
 - If destination is unreachable (inside an obstacle), reroutes to the nearest best tile
@@ -10,7 +13,7 @@ Unity C# Pathfinding Implementation incorporating:
 - Collision box height slider for adjustable obstacle overhang detection.
 - In-editor debugging visualizations (toggleable Gizmos) to help illustrate and provide educational insights on the pathfinding algorithm
 - Leverages optimizations using a custom PriorityDictionary which combinesconstant time O(1) dictionary lookups with O(1) fetching of the lowest F-Score tile
-- Currently performs pathfinding in ~0.3 ms
+- Currently performs pathfinding in ~0.3 ms!
 
 
 ## Instructions for Running
