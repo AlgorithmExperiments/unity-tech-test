@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class PathSimplifier : MonoBehaviour
+public class PathSimplifier : NodePathPostProcessor
 {
 
     [SerializeField] [Range(0,4)]
@@ -19,7 +19,6 @@ public class PathSimplifier : MonoBehaviour
     List<(Vector3, Quaternion, Vector3)> _gizmoRadialProjectionHits = new List<(Vector3, Quaternion, Vector3)>();
     List<Vector3> _gizmoNewlyAdjustedNodePositions = new List<Vector3>();
 
-    bool _showDebuggingGizmos = true;
 
 
     void Start()
@@ -28,7 +27,7 @@ public class PathSimplifier : MonoBehaviour
     }
 
 
-    public void Reset()
+    public override void Reset()
     {
         _gizmoCollisionTunnelBoxes.Clear();
         _gizmoRadialProjectionLines.Clear();
@@ -38,19 +37,21 @@ public class PathSimplifier : MonoBehaviour
     }
 
 
-    public List<PathNode> SimplifyPath(List<PathNode> controlPoints, Vector2 collisionPostProcessingTunnelBox)
+
+
+    public override List<PathNode> GetNewPath(List<PathNode> controlPoints, Vector3 collisionBoxSize)
     {
         if (controlPoints == null || controlPoints.Count < 2)
             return new List<PathNode>(controlPoints);
 
         Reset();
         
-        return CalculateSimplifiedPathPoints(controlPoints, collisionPostProcessingTunnelBox);
+        return CalculateSimplifiedPathPoints(controlPoints, collisionBoxSize);
     }
 
 
 
-    List<PathNode> CalculateSimplifiedPathPoints(List<PathNode> controlPoints, Vector2 collisionTunnelBox)
+    List<PathNode> CalculateSimplifiedPathPoints(List<PathNode> controlPoints, Vector3 collisionTunnelBoxSize)
     {
         if (controlPoints == null || controlPoints.Count < 2)
         {
@@ -66,7 +67,7 @@ public class PathSimplifier : MonoBehaviour
             bool foundClearPath = false;
             for (int j = _simplifiedPath.Count - 1; j > i; j--)
             {
-                if (!IsPathBlocked(_simplifiedPath[i], _simplifiedPath[j], collisionTunnelBox))
+                if (!IsPathBlocked(_simplifiedPath[i], _simplifiedPath[j], collisionTunnelBoxSize))
                 {
                     // Remove points between i and j
                     _simplifiedPath.RemoveRange(i + 1, j - i - 1);
@@ -88,14 +89,14 @@ public class PathSimplifier : MonoBehaviour
         }
 
         
-        FindAndMergeNodesWithinSmallRadiusApart(collisionTunnelBox);
+        FindAndMergeNodesWithinSmallRadiusApart(collisionTunnelBoxSize);
 
         List<int> indicesOfNodesToAdjust = new();
         for (int index = 1; index < _simplifiedPath.Count - 1; index++) {
             indicesOfNodesToAdjust.Add(index);
         }
             
-        BufferPointsAwayFromNeighboringObstacles(indicesOfNodesToAdjust, collisionTunnelBox);
+        BufferPointsAwayFromNeighboringObstacles(indicesOfNodesToAdjust, collisionTunnelBoxSize);
 
         return _simplifiedPath;
     }
@@ -106,13 +107,13 @@ public class PathSimplifier : MonoBehaviour
     ///--------------------------------------------------------------------------------------<summary>
     /// Perform collision tunneling to determine if path is blocked by a collision mesh with
     /// layer type == _obstacleLayer </summary>
-    private bool IsPathBlocked(PathNode start, PathNode end, Vector2 collisionPostProcessingTunnelBox)
+    private bool IsPathBlocked(PathNode start, PathNode end, Vector3 collisionTunnelBoxSize)
     {
         Vector3 direction = end.Position - start.Position;
         float distance = direction.magnitude;
-        Vector3 center = start.Position + (direction / 2) + new Vector3(0, (collisionPostProcessingTunnelBox.y/2) + 0.04f , 0);
+        Vector3 center = start.Position + (direction / 2) + new Vector3(0, (collisionTunnelBoxSize.y/2) + 0.04f , 0);
     
-        Vector3 scale = new Vector3(collisionPostProcessingTunnelBox.x, collisionPostProcessingTunnelBox.y, distance);
+        Vector3 scale = new Vector3(collisionTunnelBoxSize.x, collisionTunnelBoxSize.y, distance);
 
         Quaternion orientation = Quaternion.LookRotation(direction);
     
@@ -126,7 +127,7 @@ public class PathSimplifier : MonoBehaviour
 
 
 
-    void FindAndMergeNodesWithinSmallRadiusApart(Vector2 collisionTunnelBox)
+    void FindAndMergeNodesWithinSmallRadiusApart(Vector3 collisionTunnelBoxSize)
     {
         List<int> indicesOfNewlyMergedNodes = new List<int>();
 
@@ -135,10 +136,10 @@ public class PathSimplifier : MonoBehaviour
         {
             if ((_simplifiedPath[i].Position - _simplifiedPath[i - 1].Position).sqrMagnitude < (_nearbyMergeRadius * _nearbyMergeRadius))
             {
-                if (IsPathBlocked(_simplifiedPath[i], _simplifiedPath[i - 2], collisionTunnelBox))
+                if (IsPathBlocked(_simplifiedPath[i], _simplifiedPath[i - 2], collisionTunnelBoxSize))
                 {
-                    BufferPointsAwayFromNeighboringObstacles(new List<int>() { i }, collisionTunnelBox);
-                    if (!IsPathBlocked(_simplifiedPath[i], _simplifiedPath[i - 2], collisionTunnelBox))
+                    BufferPointsAwayFromNeighboringObstacles(new List<int>() { i }, collisionTunnelBoxSize);
+                    if (!IsPathBlocked(_simplifiedPath[i], _simplifiedPath[i - 2], collisionTunnelBoxSize))
                     {
                         _simplifiedPath.RemoveAt(i - 1);
                         continue;
@@ -157,31 +158,31 @@ public class PathSimplifier : MonoBehaviour
 
 
 
-    void BufferPointsAwayFromNeighboringObstacles(List<int> indicesOfNodesToAdjust, Vector2 collisionTunnelBox)
+    void BufferPointsAwayFromNeighboringObstacles(List<int> indicesOfNodesToAdjust, Vector3 collisionTunnelBoxSize)
     {
-        Vector2 modifiedCollisionTunnelBox = new Vector2(collisionTunnelBox.x * _collisionBoxScalar, collisionTunnelBox.y);
-        Vector3 largeCollisionBoxSizeExtents = new Vector3(modifiedCollisionTunnelBox.x * _collisionBoxScalar, modifiedCollisionTunnelBox.y, modifiedCollisionTunnelBox.x * _collisionBoxScalar) / 2;
-        Vector3 radialProjectionCollisionBoxSizeExtents = new Vector3(modifiedCollisionTunnelBox.x / 12, modifiedCollisionTunnelBox.y / 2, modifiedCollisionTunnelBox.x / 4);
+        Vector3 modifiedCollisionBoxSize = new Vector3(collisionTunnelBoxSize.x * _collisionBoxScalar, collisionTunnelBoxSize.y, collisionTunnelBoxSize.z * _collisionBoxScalar);
+        Vector3 largeCollisionBoxSizeExtents = new Vector3(modifiedCollisionBoxSize.x * _collisionBoxScalar, modifiedCollisionBoxSize.y, modifiedCollisionBoxSize.x * _collisionBoxScalar) / 2;
+        Vector3 radialProjectionCollisionBoxSizeExtents = new Vector3(modifiedCollisionBoxSize.x / 12, modifiedCollisionBoxSize.y / 2, modifiedCollisionBoxSize.x / 4);
 
         //(Position, Rotation)[]
         (Vector3, Quaternion)[] secondaryCollisionBoxOffsets = new (Vector3, Quaternion)[]
         {
             //💬 0 - CenterTop: 
-            (new Vector3(0, modifiedCollisionTunnelBox.y/2, modifiedCollisionTunnelBox.x/4), Quaternion.Euler(0, 0, 0)),
+            (new Vector3(0, modifiedCollisionBoxSize.y/2, modifiedCollisionBoxSize.z/4), Quaternion.Euler(0, 0, 0)),
             //💬 1 - TopRight: 
-            (new Vector3(0.707f*modifiedCollisionTunnelBox.x/4, modifiedCollisionTunnelBox.y/2, 0.707f*modifiedCollisionTunnelBox.x/4), Quaternion.Euler(0, 45, 0)),
+            (new Vector3(0.707f*modifiedCollisionBoxSize.x/4, modifiedCollisionBoxSize.y/2, 0.707f*modifiedCollisionBoxSize.z/4), Quaternion.Euler(0, 45, 0)),
             //💬 2 - CenterRight: 
-            (new Vector3(modifiedCollisionTunnelBox.x/4, modifiedCollisionTunnelBox.y/2, 0), Quaternion.Euler(0, 90, 0)),
+            (new Vector3(modifiedCollisionBoxSize.x/4, modifiedCollisionBoxSize.y/2, 0), Quaternion.Euler(0, 90, 0)),
             //💬 3 - BottomRight: 
-            (new Vector3(0.707f*modifiedCollisionTunnelBox.x/4, modifiedCollisionTunnelBox.y/2, -0.707f*modifiedCollisionTunnelBox.x/4), Quaternion.Euler(0, 135, 0)),
+            (new Vector3(0.707f*modifiedCollisionBoxSize.x/4, modifiedCollisionBoxSize.y/2, -0.707f*modifiedCollisionBoxSize.z/4), Quaternion.Euler(0, 135, 0)),
             //💬 4 - CenterBottom: 
-            (new Vector3(0, modifiedCollisionTunnelBox.y/2, -modifiedCollisionTunnelBox.x/4), Quaternion.Euler(0, 180, 0)),
+            (new Vector3(0, modifiedCollisionBoxSize.y/2, -modifiedCollisionBoxSize.z/4), Quaternion.Euler(0, 180, 0)),
             //💬 5 - BottomLeft: 
-            (new Vector3(-0.707f*modifiedCollisionTunnelBox.x/4, modifiedCollisionTunnelBox.y/2, -0.707f*modifiedCollisionTunnelBox.x/4), Quaternion.Euler(0, 225, 0)),
+            (new Vector3(-0.707f*modifiedCollisionBoxSize.x/4, modifiedCollisionBoxSize.y/2, -0.707f*modifiedCollisionBoxSize.z/4), Quaternion.Euler(0, 225, 0)),
             //💬 6 - CenterLeft: 
-            (new Vector3(-modifiedCollisionTunnelBox.x/4, modifiedCollisionTunnelBox.y/2, 0), Quaternion.Euler(0, 270, 0)),
+            (new Vector3(-modifiedCollisionBoxSize.x/4, modifiedCollisionBoxSize.y/2, 0), Quaternion.Euler(0, 270, 0)),
             //💬 7 - TopLeft: 
-            (new Vector3(-0.707f*modifiedCollisionTunnelBox.x/4, modifiedCollisionTunnelBox.y/2, 0.707f*modifiedCollisionTunnelBox.x/4), Quaternion.Euler(0, 315, 0)),
+            (new Vector3(-0.707f*modifiedCollisionBoxSize.x/4, modifiedCollisionBoxSize.y/2, 0.707f*modifiedCollisionBoxSize.z/4), Quaternion.Euler(0, 315, 0)),
         };
 
 
@@ -199,12 +200,12 @@ public class PathSimplifier : MonoBehaviour
                 List<Vector3> collisionVectors = new();
                 foreach ((Vector3, Quaternion) offsets in secondaryCollisionBoxOffsets)
                 {
-                    /* 💬 DEBUGGING GIZMO: */ _gizmoRadialProjectionLines.Add((nodeCenter, nodeCenter + offsets.Item1 - new Vector3(0, modifiedCollisionTunnelBox.y / 2, 0)));
+                    /* 💬 DEBUGGING GIZMO: */ _gizmoRadialProjectionLines.Add((nodeCenter, nodeCenter + offsets.Item1 - new Vector3(0, modifiedCollisionBoxSize.y / 2, 0)));
                     if (Physics.CheckBox(nodeCenter + offsets.Item1, radialProjectionCollisionBoxSizeExtents, offsets.Item2, _obstacleLayer))
                     {
                         collisionVectors.Add(new Vector3(offsets.Item1.x, 0, offsets.Item1.z));
                         /* 💬 DEBUGGING GIZMO: */
-                        _gizmoRadialProjectionHits.Add((nodeCenter + offsets.Item1 - new Vector3(0, modifiedCollisionTunnelBox.y / 2, 0), offsets.Item2, new Vector3(radialProjectionCollisionBoxSizeExtents.x / 8, 0.01f, radialProjectionCollisionBoxSizeExtents.z / 2)));
+                        _gizmoRadialProjectionHits.Add((nodeCenter + offsets.Item1 - new Vector3(0, modifiedCollisionBoxSize.y / 2, 0), offsets.Item2, new Vector3(radialProjectionCollisionBoxSizeExtents.x / 8, 0.01f, radialProjectionCollisionBoxSizeExtents.z / 2)));
                     }
                 }
                 //💬 Sum up collision offset vectors
@@ -230,19 +231,14 @@ public class PathSimplifier : MonoBehaviour
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
-    public void ShowDebuggingGizmos(bool newVisibility) //-------------------------------------
-    {
-        _showDebuggingGizmos = newVisibility;
-    }
+    
 
 
 
 
     void OnDrawGizmos()
     {
-        if (!_showDebuggingGizmos)
+        if (!_showPostProcessingVisualizations)
             return;
 
         if (_simplifiedPath != null && _simplifiedPath.Count > 0)

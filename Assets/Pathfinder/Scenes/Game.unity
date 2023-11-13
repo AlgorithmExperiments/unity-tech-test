@@ -181,10 +181,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a76aa0e34fbdab48b56d5a7d72c2f4f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _showDebuggingGizmos: 1
-  _previousShowDebuggingGizmos: 1
-  _pathSimplifier: {fileID: 39418939}
-  _catmullRomSplineBuilder: {fileID: 39418938}
+  _showAlgorithmVisualizations: 1
+  _showPostProcessingVisualizations: 1
+  _previousShowPostProcessingVisualizations: 1
+  dummyArray: {fileID: 0}
+  _postProcessors:
+  - {fileID: 39418939}
+  - {fileID: 39418938}
 --- !u!4 &39418941
 Transform:
   m_ObjectHideFlags: 0
@@ -1659,8 +1662,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d342102a7d73846be98feab259fa701a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _showDebuggingGizmos: 1
-  _previousShowDebuggingGizmos: 1
+  _showGridVisualizations: 1
+  _showAlgorithmVisualizations: 1
+  _previousShowAlgorithmVisualizations: 1
   _algorithm: {fileID: 39418940}
   _previousAlgorithm: {fileID: 39418940}
   _tileSize: 1

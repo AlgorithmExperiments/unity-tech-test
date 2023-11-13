@@ -1,23 +1,24 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-public class CatmullRomSplineBuilder : MonoBehaviour
+///------------------------------------------------------------------------------<summary>
+/// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
+public class CatmullRomSplineBuilder : NodePathPostProcessor
 {
     [SerializeField]
     int _numberOfPoints = 36;
 
     List<PathNode> _splinePath = new();
 
-    bool _showDebuggingGizmos = true;
 
-    public void Reset()
+    public override void Reset()
     {
         _splinePath.Clear();
     }
 
 
 
-    public List<PathNode> GetSplinePath(List<PathNode> controlPoints)
+    public override List<PathNode> GetNewPath(List<PathNode> controlPoints, Vector3 collisionBoxSize)
     {
 
         //Debug.Log("CATMULL ROM SPLINE BUILDER: GetSplinePath() was called. controlPoints.Count = " + controlPoints.Count);
@@ -31,7 +32,10 @@ public class CatmullRomSplineBuilder : MonoBehaviour
     }
 
 
-    List<PathNode> CalculatePathPointsAlongCatmullRomSpline(List<PathNode> controlPoints)
+
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
+    List<PathNode> CalculatePathPointsAlongCatmullRomSpline(List<PathNode> controlPoints) //--
     {
         _splinePath = new List<PathNode>();
 
@@ -52,6 +56,9 @@ public class CatmullRomSplineBuilder : MonoBehaviour
         return _splinePath;
     }
 
+
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     private Vector3 CalculateCatmullRomPoint(float t, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3)
     {
         float t2 = t * t;
@@ -67,18 +74,11 @@ public class CatmullRomSplineBuilder : MonoBehaviour
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
-    public void ShowDebuggingGizmos(bool newVisibility) //-------------------------------------
-    {
-        _showDebuggingGizmos = newVisibility;
-    }
-
 
 
     private void OnDrawGizmos()
     {
-        if (!_showDebuggingGizmos)
+        if (!_showPostProcessingVisualizations)
             return;
 
         if (_splinePath != null && _splinePath.Count > 0)

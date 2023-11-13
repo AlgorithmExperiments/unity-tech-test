@@ -7,14 +7,23 @@ using Utils;
 
 public class AStarPathfindingAlgorithm : MonoBehaviour
 {
+    [Header("--- VIEW DEBUGGING VISUALIZATIONS ---")]
     [SerializeField]
-    bool _showDebuggingGizmos = true;
+    bool _showAlgorithmVisualizations = true;
 
-    [HideInInspector] [SerializeField] //🔒 HIDDEN - DO NOT EDIT DIRECTLY
-    bool _previousShowDebuggingGizmos = true;
+    [SerializeField] 
+    bool _showPostProcessingVisualizations = true;
+    [HideInInspector] [SerializeField] 
+    bool _previousShowPostProcessingVisualizations = true; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
 
-    [SerializeField] PathSimplifier _pathSimplifier;
-    [SerializeField] CatmullRomSplineBuilder _catmullRomSplineBuilder;
+    [SerializeField]
+    NodePathPostProcessor dummyArray;
+
+    [Space(10)]
+    [Header("--- ADDITIONAL POSTPROCESSING ---")] 
+    [SerializeField] NodePathPostProcessor[] _postProcessors = Array.Empty<NodePathPostProcessor>();
+    [Header("      (performed in order)      ")]
+    [Space(10)]
 
     AStarOpenTilesPriorityDictionary _openTiles = new AStarOpenTilesPriorityDictionary();
     Dictionary<Vector2Int, AStarScoresTile> _closedTiles = new();
@@ -35,9 +44,9 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
-    public PathNode[] GetPath(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile, Vector2 collisionPostProcessingTunnelBox)
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
+    public PathNode[] GetPath(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile, Vector3 collisionBoxSize)
     {
         startTime = Time.realtimeSinceStartup;
         
@@ -111,22 +120,24 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
             + _openTiles.Count + " openTiles and " + _closedTiles.Count + " closedTiles)");
         //----------------------------------------------------------------------------------------------
 
-        List<PathNode> simplifiedNodePath = _rawAStarPath;
-        if (_pathSimplifier != null)
-            simplifiedNodePath = _pathSimplifier.SimplifyPath(_rawAStarPath, collisionPostProcessingTunnelBox);
-        if (_catmullRomSplineBuilder != null)
-            simplifiedNodePath = _catmullRomSplineBuilder.GetSplinePath(simplifiedNodePath);
-        return simplifiedNodePath.ToArray();
+        //💬 Will return this by default:
+        List<PathNode> finalNodePath = _rawAStarPath;
 
-        //return _catmullRomSplineBuilder.GetSplinePath(_pathSimplifier.SimplifyPath(_rawAStarPath, collisionPostProcessingTunnelBox)).ToArray();
+        //💬 Optional PostProcessing Steps: (performed in order)
+        for (int i = 0; i < _postProcessors.Length; i++)
+        {
+            finalNodePath = _postProcessors[i].GetNewPath(finalNodePath, collisionBoxSize);
+        }
+
+        return finalNodePath.ToArray();
     }
 
 
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     public void AbortAndReset() //--------------------------------------------------------------
     {
         if (_currentlyPathfinding)
@@ -138,48 +149,58 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Clears data from data structures </summary>
-    public void Reset() //--------------------------------------------------------------
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
+    public void Reset() //--------------------------------------------------------------------
     {
         _closedTiles.Clear();
         _openTiles.Clear();
         _rawAStarPath.Clear();
 
-        if (_pathSimplifier != null)
-            _pathSimplifier.Reset();
-
-        if (_catmullRomSplineBuilder != null)
-            _catmullRomSplineBuilder.Reset();
+        foreach (NodePathPostProcessor postProcessor in _postProcessors) {
+            postProcessor.Reset();
+        }
+            
     }
 
 
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     void OnValidate()
     {
-        if (_showDebuggingGizmos != _previousShowDebuggingGizmos) {
-            _previousShowDebuggingGizmos = _showDebuggingGizmos;
-            ShowDebuggingGizmos(_showDebuggingGizmos);
+        if (_showPostProcessingVisualizations != _previousShowPostProcessingVisualizations) {
+            _previousShowPostProcessingVisualizations = _showPostProcessingVisualizations;
+            ShowDebuggingGizmosForPostProcessing(_showPostProcessingVisualizations);
         }
     }
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
+    ///------------------------------------------------------------------------------<summary>
+    /// Sets the visibility of the in-editor debugging visualiation gizmos for the
+    /// algorithm and all of its postprocessing. </summary>
     public void ShowDebuggingGizmos(bool newVisibility) //-------------------------------------
     {
-        _showDebuggingGizmos = newVisibility;
+        _showAlgorithmVisualizations = newVisibility;
 
-        if(_pathSimplifier != null)
-            _pathSimplifier.ShowDebuggingGizmos(newVisibility);
+        foreach (NodePathPostProcessor postProcessor in _postProcessors) {
+            postProcessor.ShowDebuggingGizmos(newVisibility);
+        }
+    }
 
-        if(_catmullRomSplineBuilder != null)
-            _catmullRomSplineBuilder.ShowDebuggingGizmos(newVisibility);
+
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
+    void ShowDebuggingGizmosForPostProcessing(bool newVisibility) //-------------------------------------
+    {
+        foreach (NodePathPostProcessor postProcessor in _postProcessors) {
+            postProcessor.ShowDebuggingGizmos(newVisibility);
+        }
     }
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     List<AStarScoresTile> GetNewNeighborScores(Vector2Int currentTile, Vector2Int startingTile, Vector2Int destinationTile, Vector2Int tileCountXY, IsTileTraversable isTileTraversable)
     {
         //💬 GET NEIGHBORS----------------------------------------------
@@ -218,8 +239,8 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     decimal GetDistanceScore(Vector2Int tileStart, Vector2Int tileEnd) //----------------------
     {
         Vector2Int difference = new Vector2Int(Math.Abs(tileEnd.x - tileStart.x), Math.Abs(tileEnd.y - tileStart.y));
@@ -233,8 +254,8 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     Vector2Int GetTraversableTileNearestToUnreachableTarget(Vector2Int targetTile, Vector2Int startingTile, Vector2Int tileCountXY)
     {
         Vector2Int nearestTraversablePerimeterTile = new(-1,-1);
@@ -290,8 +311,8 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
 
 
 
-    ///-------------------------------------------------------------------------------<summary>
-    /// Description here... </summary>
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     List<Vector2Int> MarchBackwardToCompileFinalResult(Vector2Int destinationTile, Vector2Int startingTile)
     {
         List<Vector2Int> finalPath = new() { destinationTile };
@@ -317,7 +338,7 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
     /// Requires "draw Gizmos" toggle to be set to ON in the editor viewport. </summary>
     private void OnDrawGizmos() //---------------------------------------------------------------------
     {
-        if (getWorldPositionOfTile == null || !_showDebuggingGizmos)
+        if (getWorldPositionOfTile == null || !_showAlgorithmVisualizations)
             return;
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -339,6 +360,13 @@ public class AStarPathfindingAlgorithm : MonoBehaviour
         foreach (Vector2Int tile in _closedTiles.Keys)
         {
             Gizmos.DrawCube(getWorldPositionOfTile(tile), rectangleSize);
+        }
+        //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        //💬 Draws green line along highlighted tile path:
+        Gizmos.color = new Color(0, 0.8f, 0f, 0.25f); //💬 Transparent green
+        for (int i = 1; i < _rawAStarPath.Count; i++)
+        {
+            Gizmos.DrawLine (_rawAStarPath[i - 1].Position, _rawAStarPath[i].Position);
         }
     }
 }
