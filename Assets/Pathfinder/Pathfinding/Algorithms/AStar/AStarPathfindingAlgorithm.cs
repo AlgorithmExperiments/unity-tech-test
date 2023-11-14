@@ -21,7 +21,7 @@ public class AStarPathfindingAlgorithm : PathfindingAlgorithm
 
     protected override List<PathNode> CalculatePathfinding(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, Vector3 collisionBoxSize)
     {
-        _startTime = Time.realtimeSinceStartup;
+        loggingStartTime = Time.realtimeSinceStartup;
 
         if (!_isTileTraversable(destinationTileIndex)) {
             destinationTileIndex = GetTraversableTileNearestToUnreachableTarget(destinationTileIndex, startingTileIndex, tileCountXY);
@@ -78,10 +78,10 @@ public class AStarPathfindingAlgorithm : PathfindingAlgorithm
         }
 
         //💬-DEBUG.LOG()--------------------------------------------------------------------------------
-        float realtimeSinceStartup = Time.realtimeSinceStartup;
-        Debug.Log("A STAR ALGORITHM: GetPath(): Searched " + (_neighborTiles.Count + _investigatedTiles.Count) 
-            + " tiles in " + (realtimeSinceStartup - _startTime)*1000f + " milliseconds  (" 
-            + _neighborTiles.Count + " openTiles and " + _investigatedTiles.Count + " closedTiles)");
+        //float realtimeSinceStartup = Time.realtimeSinceStartup;
+        //Debug.Log("A STAR ALGORITHM: GetPath(): Searched " + (_neighborTiles.Count + _investigatedTiles.Count)
+        //    + " tiles in " + (realtimeSinceStartup - loggingStartTime) * 1000f + " milliseconds  ("
+        //    + _neighborTiles.Count + " openTiles and " + _investigatedTiles.Count + " closedTiles)");
         //----------------------------------------------------------------------------------------------
 
         return _rawAStarPath;

@@ -18,24 +18,12 @@ public class CatmullRomSplineBuilder : NodePathPostProcessor
 
 
 
-    public override List<PathNode> GetNewPath(List<PathNode> controlPoints, Vector3 collisionBoxSize)
-    {
-
-        //Debug.Log("CATMULL ROM SPLINE BUILDER: GetSplinePath() was called. controlPoints.Count = " + controlPoints.Count);
-
-        if (controlPoints == null || controlPoints.Count < 2)
-            return new List<PathNode>(controlPoints);
-
-        Reset();
-        
-        return CalculatePathPointsAlongCatmullRomSpline(controlPoints);
-    }
-
 
 
     ///------------------------------------------------------------------------------<summary>
-    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    List<PathNode> CalculatePathPointsAlongCatmullRomSpline(List<PathNode> controlPoints) //--
+    /// 🔭 Generates a Catmull-Rom spline fitted to the control points, and returns
+    /// a new set of path points fitted to the new spline. </summary>
+    protected override List<PathNode> ApplyPostProcessingToNodePath(List<PathNode> controlPoints, Vector3 collisionBoxSize) //--
     {
         _splinePath = new List<PathNode>();
 

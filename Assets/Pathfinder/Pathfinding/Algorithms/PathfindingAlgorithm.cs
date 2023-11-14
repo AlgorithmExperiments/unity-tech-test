@@ -25,22 +25,32 @@ public abstract class PathfindingAlgorithm : MonoBehaviour
 
     protected bool _currentlyPathfinding = false;
     protected bool _abortRequested = false;
-    protected float _startTime;
+    protected float loggingStartTime;
 
     ///------------------------------------------------------------------------------<summary>
     /// The publicly exposed method used to generate a path from a pathfinding algorithm.   </summary>
     public virtual PathNode[] GetPath(Vector2Int startingTileIndex, Vector2Int destinationTileIndex, Vector2Int tileCountXY, IsTileTraversable isTileTraversable, GetWorldPositionOfTile getWorldPositionOfTile, Vector3 collisionBoxSize)
     {
+        /* 💬 DEBUGGING */ float startTime = Time.realtimeSinceStartup;
+
         //💬 Store delegates for use in future method calls
         _getWorldPositionOfTile = getWorldPositionOfTile; 
         _isTileTraversable = isTileTraversable;
 
         List<PathNode> calculatedNodePath = CalculatePathfinding(startingTileIndex, destinationTileIndex, tileCountXY, collisionBoxSize);
 
+        /* 💬 Logging purposes */ string debugTimingStats = $"{(Time.realtimeSinceStartup - startTime) * 1000:F2}" + "ms (PathindingAlgorithm) ";
+
         //💬 Optional PostProcessing Steps: (performed in order)
         for (int i = 0; i < _postProcessors.Length; i++) {
+            /* 💬 Logging purposes */ float postProcessingStartTime = Time.realtimeSinceStartup;
             calculatedNodePath = _postProcessors[i].GetNewPath(calculatedNodePath, collisionBoxSize);
+            debugTimingStats += "+ " + ($"{(Time.realtimeSinceStartup - postProcessingStartTime) * 1000:F2}") + "ms (" + _postProcessors[i].GetType() + " PostProcessing)";
         }
+
+        /* 💬 DEBUG.LOG() */ Debug.Log("GetPath() Completed in: " + $"{(Time.realtimeSinceStartup - startTime) * 1000:F2}" + " milliseconds = " + debugTimingStats + ")");
+
+
         return calculatedNodePath.ToArray();
     }
 

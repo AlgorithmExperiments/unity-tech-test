@@ -12,12 +12,26 @@ public abstract class NodePathPostProcessor : MonoBehaviour //------------------
 
     ///------------------------------------------------------------------------------<summary>
     /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
-    public abstract List<PathNode> GetNewPath(List<PathNode> controlPoints, Vector3 collisionBoxSize); //-----
+    protected abstract List<PathNode> ApplyPostProcessingToNodePath(List<PathNode> controlPoints, Vector3 collisionBoxSize);
+
 
 
     ///------------------------------------------------------------------------------<summary>
     /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
     public abstract void Reset(); //----------------------------------------------------------
+
+    
+    ///------------------------------------------------------------------------------<summary>
+    /// 🔭 Nothing here yet... ✨   (description coming soon)   </summary>
+    public virtual List<PathNode> GetNewPath(List<PathNode> controlPoints, Vector3 collisionBoxSize)
+    {
+        if (controlPoints == null || controlPoints.Count < 2)
+            return new List<PathNode>(controlPoints);
+
+        Reset();
+        
+        return ApplyPostProcessingToNodePath(controlPoints, collisionBoxSize);
+    }
 
 
     ///------------------------------------------------------------------------------<summary>

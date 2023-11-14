@@ -31,23 +31,23 @@ public class NavGrid : MonoBehaviour
     [HideInInspector] [SerializeField] 
     Vector2Int _previousGridTileCountXY = new(48,48); ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
     
-    [SerializeField] [Range(1.25f, 3f)]
-    float _collisionTunnelWidth = 1.25f;
+    [SerializeField] [Range(1f, 3f)]
+    float _collisionCheckerWidth = 1f;
 
     [HideInInspector] [SerializeField] 
-    float _previousCollisionTunnelWidth = 1.25f; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
-
-    [HideInInspector] [SerializeField]
-    float _obstacleCollisionPadding = 0.5f;
-
-    [HideInInspector] [SerializeField] 
-    float _gridTilesPerPlane = 48.0f; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
+    float _previousCollisionCheckerWidth = 1f; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
 
     [SerializeField] [Range(2f, 6f)]
     float _collisionCheckerHeight = 2f;
 
     [HideInInspector] [SerializeField]
     float _previousCollisionCheckerHeight = 2f; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
+
+    [HideInInspector] [SerializeField]
+    float _obstacleCollisionPadding = 0.5f;
+
+    [HideInInspector] [SerializeField] 
+    float _gridTilesPerPlane = 48.0f; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
 
     [SerializeField]
     LayerMask _obstacleLayer;
@@ -242,7 +242,7 @@ public class NavGrid : MonoBehaviour
         Vector3 tileCollisionCheckBoxExtents = new Vector3(halfTileSize + obstacleCollisionPaddingInMeters, _collisionCheckerHeight / 2, halfTileSize + obstacleCollisionPaddingInMeters); // tall box
         Vector3 gridCornerPointOffset = -_worldSizeOfFittedGrid/2;
         
-        int outerPadding = 1;
+        int outerPadding = 2;
         Vector2Int tileMinXY = GetIndexOfGridTileAtWorldPosition(targetObstacleWorldBounds.min);
         Vector2Int tileMaxXY = GetIndexOfGridTileAtWorldPosition(targetObstacleWorldBounds.max);
         int xMin = Mathf.RoundToInt(Mathf.Max(0, tileMinXY.x - outerPadding));
@@ -275,7 +275,7 @@ public class NavGrid : MonoBehaviour
     /// Given the current and desired location, return a path to the destination.  </summary>
     public PathNode[] GetPath(Vector3 origin, Vector3 destination) //---------------------------
     {
-        _finalTilePath = _algorithm.GetPath(GetIndexOfGridTileAtWorldPosition(origin), GetIndexOfGridTileAtWorldPosition(destination), _gridTileCountXY, IsTileTraversable, GetWorldPositionOfTile, new(_collisionTunnelWidth, _collisionCheckerHeight, _collisionTunnelWidth));
+        _finalTilePath = _algorithm.GetPath(GetIndexOfGridTileAtWorldPosition(origin), GetIndexOfGridTileAtWorldPosition(destination), _gridTileCountXY, IsTileTraversable, GetWorldPositionOfTile, new(_collisionCheckerWidth, _collisionCheckerHeight, _collisionCheckerWidth));
         return _finalTilePath;
     }
 
@@ -308,14 +308,14 @@ public class NavGrid : MonoBehaviour
         }
 
 
-        if(!Mathf.Approximately(_collisionTunnelWidth, _previousCollisionTunnelWidth))
+        if(!Mathf.Approximately(_collisionCheckerWidth, _previousCollisionCheckerWidth))
         {
             if (!Application.isPlaying) {
-                _collisionTunnelWidth = _previousCollisionTunnelWidth; //💬 Lock sliderbar if game is not playing
+                _collisionCheckerWidth = _previousCollisionCheckerWidth; //💬 Lock sliderbar if game is not playing
                 return;
             }
-            _previousCollisionTunnelWidth = _collisionTunnelWidth;
-            _obstacleCollisionPadding = _collisionTunnelWidth/2;
+            _previousCollisionCheckerWidth = _collisionCheckerWidth;
+            _obstacleCollisionPadding = _collisionCheckerWidth/2;
             RecalculateTraversabilityOfEntireGrid();
         }
 
