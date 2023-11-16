@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,25 +15,57 @@ public class HandController : MonoBehaviour
     [SerializeField] 
     Transform _fingerTipIndexFinger;
 
-    int _obstacleLayer;
-    LayerMask _terrainLayerMask;
-    LayerMask _obstacleLayerMask;
-    LayerMask _combinedLayerMask;
-    Quaternion _rotationAtGameStart;
-    bool _wasMouseOutsideGameViewLastFrame = true;
+    [SerializeField]
+    Animator _handAnimator;
 
+    [SerializeField]
+    float _pressDurationThreshold = 0.5f;
+
+    [SerializeField]
+    AudioSource _grabTreeAudioSource;
+
+    [SerializeField]
+    AudioSource _grabBlockAudioSource;
+
+    [SerializeField]
+    AudioSource _grabTerrainAudioSource;
+
+    [SerializeField]
+    GizmoTapIndicator _gizmoTapIndicator;
+
+    [SerializeField]
+    AudioSource _dropObjectAudioSource;
+
+
+    bool _wasMouseOutsideGameViewLastFrame = true;
+    HandState _currentState;
+    HandStateContext _context;
 
 
     private void Start()
     {
-        _obstacleLayer = LayerManager.DefaultObstacleLayer;
+        
+        _context = new HandStateContext
+        {
+            HandTransform = transform,
+            FingerTipIndexFinger = _fingerTipIndexFinger,
+            HandAnimator = _handAnimator,
+            PressDurationThreshold = _pressDurationThreshold,
+            AudioSourceGrabTree = _grabTreeAudioSource,
+            AudioSourceGrabBlock = _grabBlockAudioSource,
+            AudioSourceGrabTerrain = _grabTerrainAudioSource,
+            AudioSourceDropObject = _dropObjectAudioSource,
+            GizmoTapIndicator = _gizmoTapIndicator,
+            RotationAtGameStart = transform.rotation,
+            NavGrid = _navGrid,
+            Player = _player,
+            SetState = SetState
+        };
 
-        _terrainLayerMask = LayerManager.DefaultTerrainLayerMask;
-        _obstacleLayerMask = LayerManager.DefaultObstacleLayerMask;
-        _combinedLayerMask = _obstacleLayerMask | _terrainLayerMask;
-
-        _rotationAtGameStart = transform.rotation;
+        SetState(new GraspingNothing());
     }
+
+  
 
     bool IsMouseOutsideGameView()
     {
@@ -50,38 +82,25 @@ public class HandController : MonoBehaviour
             _wasMouseOutsideGameViewLastFrame = !_wasMouseOutsideGameViewLastFrame;
         }
 
-        Ray ray;
-        RaycastHit hit;
-        ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out hit, 1000f, _combinedLayerMask))
+        if (Input.GetMouseButtonDown(0)) //💬 Mouse button pressed
         {
-            transform.position += (hit.point + (0.4f*hit.normal) - transform.position)/6;
+            _currentState.OnPress(_context);
+        }
 
-            if (hit.collider.gameObject.layer == _obstacleLayer) {
-                Vector3 handToTopOfObstacleDirectionVector = Vector3.Normalize((hit.collider.bounds.center + hit.collider.bounds.extents.y*Vector3.up) - transform.position);
-                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(handToTopOfObstacleDirectionVector), 0.1f);
-            }
-            else {
-                transform.rotation = Quaternion.Slerp(transform.rotation, _rotationAtGameStart, 0.1f);
-            }
-        }
-        //if (Input.GetMouseButtonDown(0))
-        //{
-        //    ray = new Ray(_fingerTipIndexFinger.position, Vector3.down);
-        //    if (Physics.Raycast(ray, out hit, 36f, _combinedLayerMask))
-        //    {
-        //        _player.SetPathDestination(hit.point, _navGrid);
-        //    }
-        //}
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0)) //💬 Mouse button released
         {
-            ray = new Ray(_fingerTipIndexFinger.position, Vector3.down);
-            if (Physics.Raycast(ray, out hit, 36f, _combinedLayerMask))
-            {
-                _player.SetPathDestination(hit.point, _navGrid);
-            }
+            _currentState.OnRelease(_context);
         }
-        
+
+        _currentState.OnUpdate(_context);        
+    }
+
+
+
+    public void SetState(HandState newState)
+    {
+        _currentState = newState;
+        newState.OnBegin(_context);
     }
 
     
@@ -97,5 +116,14 @@ public class HandController : MonoBehaviour
         
         if (!_fingerTipIndexFinger)
             Debug.LogError("HAND CONTROLLER: HandController gameobject requires an inspector reference to a _fingertipIndexFinger");
+        
+        if (!_handAnimator)
+            Debug.LogError("HAND CONTROLLER: HandController gameobject requires an inspector reference to an Animator");
+        
+        if (!_grabTreeAudioSource)
+            Debug.LogError("HAND CONTROLLER: HandController gameobject requires an inspector reference to an audio source");
+    
+    
     }
 }
+

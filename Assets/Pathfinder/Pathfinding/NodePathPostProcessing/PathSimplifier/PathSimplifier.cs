@@ -405,7 +405,7 @@ public class PathSimplifier : NodePathPostProcessor
             new Vector3(4,0,0)
         };
         List<PathNode> newTestPoints = GenerateNodesAlongBezierCurveBetweenPoints(originalFour, 3, 1f);
-        Debug.Log($"PATH SIMPLIFIER: (0,0) (1,1) ({newTestPoints[0].Position.x:F1},{newTestPoints[0].Position.y:F1}) ({newTestPoints[1].Position.x:F1},{newTestPoints[1].Position.y:F1}) ({newTestPoints[2].Position.x:F1},{newTestPoints[2].Position.y:F1}) (3,1) (4,0)");
+        //Debug.Log($"PATH SIMPLIFIER: (0,0) (1,1) ({newTestPoints[0].Position.x:F1},{newTestPoints[0].Position.y:F1}) ({newTestPoints[1].Position.x:F1},{newTestPoints[1].Position.y:F1}) ({newTestPoints[2].Position.x:F1},{newTestPoints[2].Position.y:F1}) (3,1) (4,0)");
     }
 
 
