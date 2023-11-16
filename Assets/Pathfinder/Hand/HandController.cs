@@ -22,19 +22,19 @@ public class HandController : MonoBehaviour
     float _pressDurationThreshold = 0.5f;
 
     [SerializeField]
-    AudioSource _grabTreeAudioSource;
+    AudioSource _audioSourceGrabTree;
 
     [SerializeField]
-    AudioSource _grabBlockAudioSource;
+    AudioSource _audioSourceGrabObject;
 
     [SerializeField]
-    AudioSource _grabTerrainAudioSource;
+    AudioSource _audioSourceGrabTerrain;
 
     [SerializeField]
     GizmoTapIndicator _gizmoTapIndicator;
 
     [SerializeField]
-    AudioSource _dropObjectAudioSource;
+    AudioSource _audioSourceDropObject;
 
 
     bool _wasMouseOutsideGameViewLastFrame = true;
@@ -51,10 +51,10 @@ public class HandController : MonoBehaviour
             FingerTipIndexFinger = _fingerTipIndexFinger,
             HandAnimator = _handAnimator,
             PressDurationThreshold = _pressDurationThreshold,
-            AudioSourceGrabTree = _grabTreeAudioSource,
-            AudioSourceGrabBlock = _grabBlockAudioSource,
-            AudioSourceGrabTerrain = _grabTerrainAudioSource,
-            AudioSourceDropObject = _dropObjectAudioSource,
+            AudioSourceGrabTree = _audioSourceGrabTree,
+            AudioSourceGrabObject = _audioSourceGrabObject,
+            AudioSourceGrabTerrain = _audioSourceGrabTerrain,
+            AudioSourceDropObject = _audioSourceDropObject,
             GizmoTapIndicator = _gizmoTapIndicator,
             RotationAtGameStart = transform.rotation,
             NavGrid = _navGrid,
@@ -120,7 +120,7 @@ public class HandController : MonoBehaviour
         if (!_handAnimator)
             Debug.LogError("HAND CONTROLLER: HandController gameobject requires an inspector reference to an Animator");
         
-        if (!_grabTreeAudioSource)
+        if (!_audioSourceGrabTree)
             Debug.LogError("HAND CONTROLLER: HandController gameobject requires an inspector reference to an audio source");
     
     

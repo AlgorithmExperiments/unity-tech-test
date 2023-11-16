@@ -1522,11 +1522,11 @@ MonoBehaviour:
   _fingerTipIndexFinger: {fileID: 4892772492876216120}
   _handAnimator: {fileID: 1389843582}
   _pressDurationThreshold: 0.2
-  _grabTreeAudioSource: {fileID: 275077216}
-  _grabBlockAudioSource: {fileID: 275077216}
-  _grabTerrainAudioSource: {fileID: 1889971183}
+  _audioSourceGrabTree: {fileID: 275077216}
+  _audioSourceGrabObject: {fileID: 275077216}
+  _audioSourceGrabTerrain: {fileID: 1889971183}
   _gizmoTapIndicator: {fileID: 1880588326}
-  _dropObjectAudioSource: {fileID: 1580745099}
+  _audioSourceDropObject: {fileID: 1580745099}
 --- !u!1 &1580745098
 GameObject:
   m_ObjectHideFlags: 0

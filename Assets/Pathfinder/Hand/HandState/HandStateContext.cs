@@ -9,7 +9,7 @@ public class HandStateContext
     public Animator HandAnimator;
     public float PressDurationThreshold;
     public AudioSource AudioSourceGrabTree;
-    public AudioSource AudioSourceGrabBlock;
+    public AudioSource AudioSourceGrabObject;
     public AudioSource AudioSourceGrabTerrain;
     public AudioSource AudioSourceDropObject;
     public GizmoTapIndicator GizmoTapIndicator;

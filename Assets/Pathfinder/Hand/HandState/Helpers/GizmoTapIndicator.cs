@@ -22,11 +22,17 @@ public class GizmoTapIndicator : MonoBehaviour
         {
             //// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             //💬 Draws green shrinking sphere at taap location:
-            float gizmoAge = Time.realtimeSinceStartup - _gizmoStartTime;
-            Gizmos.color = new Color(0f, 1f, 0f, Mathf.Lerp(0, 0.2f, gizmoAge)); //💬 solid green
-
+            float gizmoAge = 2*(Time.realtimeSinceStartup - _gizmoStartTime);
+            Gizmos.color = new Color(0f, 1f, 0f, Mathf.Lerp(0, 0.5f, gizmoAge)); //💬 transparent green
             Gizmos.DrawWireSphere(_gizmoLastTappedTargetPoint, Mathf.Lerp(10f, 0, gizmoAge));
-            if (Time.realtimeSinceStartup - _gizmoStartTime > 1) {
+
+            Gizmos.color = new Color(0f, 1f, 0f, Mathf.Lerp(1f, 0, gizmoAge)); //💬 transparent green
+            Gizmos.DrawWireSphere(_gizmoLastTappedTargetPoint, Mathf.Lerp(0f, 1.5f, gizmoAge));
+
+            Gizmos.color = new Color(0f, 1f, 0f, Mathf.Lerp(0, 0.07f, gizmoAge)); //💬 transparent green
+            Gizmos.DrawSphere(_gizmoLastTappedTargetPoint, Mathf.Lerp(7f, 0, gizmoAge));
+
+            if (Time.realtimeSinceStartup - _gizmoStartTime > 0.5f) {
                 _gizmoFlagTapAnimation = false;
             }
         }
