@@ -14,6 +14,9 @@ public class NavGrid : MonoBehaviour
     bool _previousShowAlgorithmVisualizations = true; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
 
     [SerializeField]
+    MeshFilter _collisionPlaneMesh;
+
+    [SerializeField]
     AStarPathfindingAlgorithm _algorithm;
 
     [HideInInspector] [SerializeField] 
@@ -50,9 +53,6 @@ public class NavGrid : MonoBehaviour
     float _gridTilesPerPlane = 48.0f; ////🔒 HIDDEN - FOR CHECKING CHANGES ONLY
 
     [SerializeField]
-    LayerMask _obstacleLayer;
-
-    [SerializeField]
     NavGridTile[,] _navGridTiles;
 
     ///----------------------------------------------------------------------------<summary>
@@ -72,6 +72,8 @@ public class NavGrid : MonoBehaviour
 
     int _gizmoPreviousDynamicObstacleCount = 0;
 
+    LayerMask _obstacleLayerMask;
+
 
 
 
@@ -88,7 +90,8 @@ public class NavGrid : MonoBehaviour
 
     void Start()
     {
-        _obstacleLayer = Obstacle.UniversalObstacleLayer;
+        _obstacleLayerMask = LayerManager.DefaultObstacleLayerMask;
+        _collisionPlaneMesh.gameObject.layer = LayerManager.DefaultTerrainLayer;
         RepopulateTilesAndResizeMapToPerfectFit();
     }
 
@@ -220,7 +223,7 @@ public class NavGrid : MonoBehaviour
             {
                 Vector3 tileCenter = new Vector3((x + 0.5f) * _tileSize, _collisionCheckerHeight / 2, (y + 0.5f) * _tileSize);
                 tileCenter += gridCornerPointOffset;
-                _navGridTiles[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
+                _navGridTiles[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayerMask);
                 _navGridTiles[x, y].CenterPointWorldPosition = new Vector3( tileCenter.x, _yPlaneHeightOfDebuggingGizmos, tileCenter.z);
             }
         }
@@ -256,11 +259,11 @@ public class NavGrid : MonoBehaviour
             {
                 Vector3 tileCenter = new Vector3((x + 0.5f) * _tileSize, _collisionCheckerHeight / 2, (y + 0.5f) * _tileSize);
                 tileCenter += gridCornerPointOffset;
-                bool isTileTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
+                bool isTileTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayerMask);
                 if (!isTileTraversable) {
                     _gizmosTilesWithDynamicObstacles.Add(new(x, y));
                 }
-                _navGridTiles[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayer);
+                _navGridTiles[x, y].IsTraversable = !Physics.CheckBox(tileCenter, tileCollisionCheckBoxExtents, Quaternion.identity, _obstacleLayerMask);
                 _navGridTiles[x, y].CenterPointWorldPosition = new Vector3( tileCenter.x, _yPlaneHeightOfDebuggingGizmos, tileCenter.z);
             }
         }
@@ -286,16 +289,24 @@ public class NavGrid : MonoBehaviour
 
     void OnValidate()
     {        
+        
+        if (!_algorithm) {
+            Debug.LogError("NAV GRID: OnValidate() NavGrid gameobject requires an inspector reference to a collision plane mesh");
+        }
+
+
+        if (!_collisionPlaneMesh) {
+            Debug.LogError("NAV GRID: OnValidate() NavGrid gameobject requires an inspector reference to a collision plane mesh");
+        }
+
+
         if(_algorithm != _previousAlgorithm) {
             if (_previousAlgorithm != null) {
                 _previousAlgorithm.AbortAndReset();
             }
             _previousAlgorithm = _algorithm;
         }
-        //else if (_algorithm != null) {
-        //    _algorithm.AbortAndReset();
-        //}
-
+        
 
         if (!Mathf.Approximately(_collisionCheckerHeight, _previousCollisionCheckerHeight))
         {

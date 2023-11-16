@@ -6,7 +6,7 @@ using System.Collections.Generic;
 public class CatmullRomSplineBuilder : NodePathPostProcessor
 {
     [SerializeField]
-    int _numberOfPoints = 36;
+    int _numberOfPoints = 48;
 
     List<PathNode> _splinePath = new();
 

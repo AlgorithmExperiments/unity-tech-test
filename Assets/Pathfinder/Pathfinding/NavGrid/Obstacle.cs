@@ -8,6 +8,9 @@ public class Obstacle : MonoBehaviour
     [SerializeField]
     NavGrid _navGrid;
 
+    [SerializeField]
+    bool _isTree;
+
     Collider _collider;
 
     Rigidbody _rigidbody;
@@ -16,14 +19,16 @@ public class Obstacle : MonoBehaviour
 
     int _sleepThreshold = 5;
 
-    public static LayerMask UniversalObstacleLayer => 1 << 4; //💬 "Water" Layer (Layer 4)
 
-
-    void Awake()
+    void Start()
     {
-        gameObject.layer = LayerMask.NameToLayer("Water");
         _rigidbody = GetComponent<Rigidbody>();
         _collider = GetComponent<Collider>();
+        gameObject.layer = LayerManager.DefaultObstacleLayer;
+        if(_isTree) {
+            gameObject.tag = TagManager.DefaultTreeTag;
+        }
+        
     }
 
 

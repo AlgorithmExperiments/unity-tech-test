@@ -19,7 +19,7 @@ public class PathSimplifier : NodePathPostProcessor
     [SerializeField] [Range(0.1f, 0.3f)]
     float _interpolationCurveFactor = 0.2f;
 
-    LayerMask _obstacleLayer; 
+    LayerMask _obstacleLayerMask; 
 
     List<PathNode> _simplifiedPath = new List<PathNode>();
 
@@ -51,7 +51,7 @@ public class PathSimplifier : NodePathPostProcessor
         }
 
         Reset();
-        _obstacleLayer = Obstacle.UniversalObstacleLayer;
+        _obstacleLayerMask = LayerManager.DefaultObstacleLayerMask;
         _simplifiedPath = new List<PathNode>(controlPoints); // Initialize a copy of all control points
 
         int i = 0;
@@ -114,7 +114,7 @@ public class PathSimplifier : NodePathPostProcessor
 
         Quaternion orientation = Quaternion.LookRotation(direction);
     
-        bool isBlocked = Physics.CheckBox(center, scale / 2, orientation, _obstacleLayer);
+        bool isBlocked = Physics.CheckBox(center, scale / 2, orientation, _obstacleLayerMask);
 
         if (!isBlocked)
             _gizmoCollisionTunnelBoxes.Add((center, orientation, scale));
@@ -193,14 +193,14 @@ public class PathSimplifier : NodePathPostProcessor
             //Vector3 nodeCenter = _simplifiedPath[nodeIndex].Position
             Vector3 nodeCenter = _simplifiedPath[index].Position;
             //💬 Skip radial projection if no obstacles are nearby:
-            if (Physics.CheckBox(nodeCenter, largeCollisionBoxSizeExtents, Quaternion.identity, _obstacleLayer))
+            if (Physics.CheckBox(nodeCenter, largeCollisionBoxSizeExtents, Quaternion.identity, _obstacleLayerMask))
             {
                 //💬 Proceed to perform 8 radially-projected Physics Checkboxes
                 List<Vector3> collisionVectors = new();
                 foreach ((Vector3, Quaternion) offsets in secondaryCollisionBoxOffsets)
                 {
                     /* 💬 DEBUGGING GIZMO: */ _gizmoRadialProjectionLines.Add((nodeCenter + _yPlaneHeightOfDebuggingGizmos*Vector3.up, new Vector3((nodeCenter.x + (2*offsets.Item1).x), _yPlaneHeightOfDebuggingGizmos, (nodeCenter.z + (2*offsets.Item1).z))));
-                    if (Physics.CheckBox(nodeCenter + offsets.Item1, radialProjectionCollisionBoxSizeExtents, offsets.Item2, _obstacleLayer))
+                    if (Physics.CheckBox(nodeCenter + offsets.Item1, radialProjectionCollisionBoxSizeExtents, offsets.Item2, _obstacleLayerMask))
                     {
                         collisionVectors.Add(new Vector3(offsets.Item1.x, 0, offsets.Item1.z));
                         /* 💬 DEBUGGING GIZMO: */

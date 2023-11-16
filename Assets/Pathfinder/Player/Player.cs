@@ -1,63 +1,84 @@
 ﻿using System;
 using UnityEngine;
 
+//[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
 public class Player : MonoBehaviour
 {
     private PathNode[] _currentPath = Array.Empty<PathNode>();
-    private int _currentPathIndex = 0;
+    private int _nextNodeIndex = 0;
     
     [SerializeField]
-    private NavGrid _navGrid;
+    private float _speed = 80f;
+    
+    Rigidbody _playerRigidbody;
+    Collider _playerCollider;
 
-    [SerializeField]
-    private float _speed = 10.0f;
+    Vector3 _currentBaseOfPlayer;
+    bool _hasKinematicRigidbody;
+    float _playerHalfHeightOffset;
 
 
-
-    void Awake()
+    private void Awake()
     {
-        if (!_navGrid)
-        {
-            Debug.LogError("PLAYER: Player gameobject requires an inspector reference to a NavGrid");
-        }
+        _playerRigidbody = gameObject.GetComponent<Rigidbody>();
+        _playerCollider = gameObject.GetComponent<Collider>();
+        _hasKinematicRigidbody = _playerRigidbody != null;
+        _playerHalfHeightOffset = _playerCollider.bounds.extents.y;
     }
 
-    
+
+    public void SetPathDestination(Vector3 targetPoint, NavGrid navGrid)
+    {
+        _currentPath = navGrid.GetPath(transform.position, targetPoint);
+        _nextNodeIndex = 1;
+    }
+
 
     void Update()
     {
-        // Check Input
-        if (Input.GetMouseButtonUp(0))
-        {
-            LayerMask _terrainLayerMask= LayerMask.GetMask("Default");
-            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out var hitInfo, Mathf.Infinity, _terrainLayerMask))
-            {
-                _currentPath = _navGrid.GetPath(transform.position, hitInfo.point);
-                _currentPathIndex = 1;
-            }
-        }
+        float remainingDistanceThisTurn = _speed * Time.deltaTime;
 
         // Traverse
-        if (_currentPathIndex < _currentPath.Length)
+        while (remainingDistanceThisTurn > 0.01f && _nextNodeIndex < _currentPath.Length)
         {
-            var currentNode = _currentPath[_currentPathIndex];
             
-            var maxDistance = _speed * Time.deltaTime;
-            Vector3 vectorToDestination = new(currentNode.Position.x - transform.position.x, (/* y = */ 0), currentNode.Position.z - transform.position.z);
-            var moveDistance = Mathf.Min(vectorToDestination.magnitude, maxDistance);
+            _currentBaseOfPlayer = transform.position - (_playerHalfHeightOffset * Vector3.up);
+            PathNode nextNode = _currentPath[_nextNodeIndex];
+            Vector3 vectorToDestination = nextNode.Position - _currentBaseOfPlayer;
+            Vector3 normalizedVectorToDestination = vectorToDestination.normalized;
+            var distanceToNextNode = vectorToDestination.magnitude;
+            
 
-            transform.LookAt(currentNode.Position + new Vector3(0,1,0), Vector3.up);
-
-            var moveVector = vectorToDestination.normalized * moveDistance;
-            transform.position += moveVector;
-
-            if (vectorToDestination.sqrMagnitude < 0.1f) 
+            if (distanceToNextNode < remainingDistanceThisTurn)
             {
-                _currentPathIndex++;
+                MovePlayerTargetPosition(nextNode.Position, normalizedVectorToDestination);
+                remainingDistanceThisTurn -= distanceToNextNode;
+                _nextNodeIndex++;
             }
-                
+            else
+            {
+                MovePlayerTargetPosition(_currentBaseOfPlayer + (remainingDistanceThisTurn * normalizedVectorToDestination), normalizedVectorToDestination);
+                remainingDistanceThisTurn = 0;
+            }
+
         }
+        
     }
 
+
+
+    void MovePlayerTargetPosition(Vector3 newPosition, Vector3 normalizedDirectionVector)
+    {
+        newPosition.y = _playerHalfHeightOffset;
+
+        if (_hasKinematicRigidbody) {
+            _playerRigidbody.Move(newPosition, Quaternion.LookRotation(normalizedDirectionVector, Vector3.up));
+        }
+        else {
+            transform.position = newPosition;
+            //transform.LookAt(newPosition + normalizedDirectionVector + (Vector3.up * _playerCollider.bounds.extents.y));
+        }
+
+    }
 }
